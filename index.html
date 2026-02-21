@@ -104,6 +104,24 @@
     <circle cx="18" cy="16" r="3"/>
   </symbol>
 
+  <symbol id="ic-stopwatch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="13" r="8"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <line x1="10" y1="2" x2="14" y2="2"/>
+    <line x1="12" y1="2" x2="12" y2="5"/>
+  </symbol>
+
+  <symbol id="ic-wind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.59 4.59A2 2 0 1 1 11 8H2"/>
+    <path d="M12.59 19.41A2 2 0 1 0 14 16H2"/>
+    <path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/>
+  </symbol>
+
+  <symbol id="ic-skip-ad" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 4 15 12 5 20 5 4"/>
+    <rect x="17" y="4" width="3" height="16"/>
+  </symbol>
+
 </svg>
 
 <!-- ═══════════════════════════════════════════════
@@ -111,6 +129,13 @@
      ═══════════════════════════════════════════════ -->
 <div id="background">
   <div id="bg-gradient" class="bg-layer active"></div>
+  <!-- Large clock overlay shown on gradient/clock mode -->
+  <div id="big-clock" class="big-clock">
+    <div class="big-clock-time">
+      <span id="big-clock-hours">12</span><span class="big-clock-sep">:</span><span id="big-clock-minutes">00</span><span class="big-clock-ampm" id="big-clock-ampm">AM</span>
+    </div>
+    <div class="big-clock-date" id="big-clock-date">Saturday, January 1, 2026</div>
+  </div>
   <div id="bg-gif" class="bg-layer">
     <img id="gif-img" src="" alt="" draggable="false" />
   </div>
@@ -151,7 +176,7 @@
 
   <div class="header-center">
     <div class="bg-selector" role="group" aria-label="Background mode">
-      <button class="bg-btn active" data-bg="gradient">Gradient</button>
+      <button class="bg-btn active" data-bg="gradient">Clock</button>
       <button class="bg-btn" data-bg="gif">GIF</button>
       <button class="bg-btn" data-bg="stream">Stream</button>
     </div>
@@ -170,6 +195,14 @@
     <button class="tool-toggle" data-panel="notes-panel" aria-label="Toggle notes">
       <svg class="icon"><use href="#ic-edit"/></svg>
       <span class="tl">Notes</span>
+    </button>
+    <button class="tool-toggle" data-panel="stopwatch-panel" aria-label="Toggle stopwatch">
+      <svg class="icon"><use href="#ic-stopwatch"/></svg>
+      <span class="tl">Stopwatch</span>
+    </button>
+    <button class="tool-toggle" data-panel="breathing-panel" aria-label="Toggle breathing">
+      <svg class="icon"><use href="#ic-wind"/></svg>
+      <span class="tl">Breathe</span>
     </button>
   </div>
 
@@ -267,6 +300,59 @@
     </div>
   </div>
 
+  <!-- ── Stopwatch ── -->
+  <div id="stopwatch-panel" class="panel hidden" role="region" aria-label="Stopwatch">
+    <div class="panel-header">
+      <h3>Stopwatch</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Stopwatch"
+          data-tip="A simple stopwatch to track how long you spend on tasks. Start, stop, and reset as needed.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="stopwatch-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="timer-display">
+        <span id="stopwatch-time">00:00:00</span>
+      </div>
+      <div class="timer-controls">
+        <button id="btn-stopwatch-start" class="btn-primary">Start</button>
+        <button id="btn-stopwatch-reset" class="btn-secondary">Reset</button>
+      </div>
+      <div id="stopwatch-laps" class="stopwatch-laps"></div>
+      <button id="btn-stopwatch-lap" class="btn-secondary" style="width:100%;margin-top:8px" disabled>Lap</button>
+    </div>
+  </div>
+
+  <!-- ── Breathing Exercise ── -->
+  <div id="breathing-panel" class="panel hidden" role="region" aria-label="Breathing Exercise">
+    <div class="panel-header">
+      <h3>Breathe</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Breathing"
+          data-tip="4-7-8 breathing technique: Inhale 4s, Hold 7s, Exhale 8s. Reduces stress and improves focus.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="breathing-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body breathing-body">
+      <div class="breathing-circle" id="breathing-circle">
+        <span class="breathing-label" id="breathing-label">Ready</span>
+      </div>
+      <div class="timer-controls" style="margin-top:14px">
+        <button id="btn-breathing-start" class="btn-primary">Start</button>
+        <button id="btn-breathing-stop" class="btn-secondary">Stop</button>
+      </div>
+      <p class="breathing-info">4-7-8 technique · Inhale · Hold · Exhale</p>
+    </div>
+  </div>
+
 </aside>
 
 <!-- ═══════════════════════════════════════════════
@@ -295,6 +381,16 @@
       <p id="stream-error" class="error-msg hidden" role="alert"></p>
     </div>
   </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SKIP AD OVERLAY
+     ═══════════════════════════════════════════════ -->
+<div id="skip-ad-overlay" class="skip-ad-overlay hidden">
+  <button id="btn-skip-ad" class="btn-skip-ad" aria-label="Skip ad">
+    <svg class="icon" style="width:18px;height:18px"><use href="#ic-skip-ad"/></svg>
+    <span>Skip Ad</span>
+  </button>
 </div>
 
 <!-- ═══════════════════════════════════════════════

@@ -957,6 +957,52 @@ input, textarea { font-family: var(--font); }
 ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
 
 /* ── Responsive tweaks ───────────────────────────────────── */
+
+/* ultrawide monitors (2560px+) */
+@media (min-width: 2560px) {
+  :root {
+    --header-h: 62px;
+    --player-h: 68px;
+    --panel-w: 340px;
+  }
+  #header { padding: 0 32px; gap: 20px; }
+  .logo-text { font-size: 20px; }
+  .logo-svg { width: 24px; height: 24px; }
+  .bg-btn { font-size: 14px; padding: 6px 18px; }
+  .tool-toggle { font-size: 14px; padding: 8px 14px; }
+  .clock { font-size: 15px; }
+  #player-bar { padding: 0 32px; gap: 20px; }
+  #stream-name { font-size: 15px; }
+  .player-center button { width: 40px; height: 40px; }
+  .btn-play { width: 44px !important; height: 44px !important; }
+  #volume-slider { width: 120px; }
+  .big-clock-time { font-size: min(22vw, 280px); }
+  .big-clock-date { font-size: min(2.4vw, 28px); }
+  .big-clock-ampm { font-size: min(4vw, 48px); }
+  #tools-container { right: 28px; }
+}
+
+/* large monitors (1920px+) */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  :root {
+    --panel-w: 310px;
+  }
+  .big-clock-time { font-size: min(18vw, 220px); }
+  .big-clock-date { font-size: min(2vw, 24px); }
+}
+
+/* tablets (641px-1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  :root { --panel-w: 260px; }
+  .tool-toggle .tl { display: none; }
+  .tool-toggle { padding: 6px 8px; }
+  #volume-slider { width: 70px; }
+  .big-clock-time { font-size: 16vw; }
+  .big-clock-date { font-size: 2.2vw; }
+  .big-clock-ampm { font-size: 3.5vw; }
+}
+
+/* mobile (max 640px) */
 @media (max-width: 640px) {
   #header { padding: 0 12px; gap: 8px; }
   .bg-selector { display: none; }
@@ -967,4 +1013,10 @@ input, textarea { font-family: var(--font); }
   #volume-slider { width: 60px; }
   #tools-container { right: 8px; }
   .panel { width: calc(100vw - 24px); }
+  .big-clock-time { font-size: 20vw; }
+  .big-clock-date { font-size: 3.5vw; }
+  .big-clock-ampm { font-size: 5vw; }
+  .breathing-circle { width: 100px; height: 100px; }
+  .breathing-label { font-size: 13px; }
+  #btn-view { display: none; }
 }
