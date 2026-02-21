@@ -58,6 +58,7 @@ let cdRunning = false, cdTotal = 300, cdLeft = 300, cdInterval = null;
 // Breathing state
 let brInterval = null, brPhase = -1;
 // Ad detection
+const MAX_AD_DURATION_SECONDS = 120;
 let adCheckInterval = null;
 
 // ── Settings state ─────────────────────────────────────────
@@ -464,6 +465,10 @@ function updateBigClockPomo(secs) {
 
 /**
  * Tiny Web Audio beep — no audio files needed.
+ * @param {number} freq      Hz
+ * @param {number} vol       0–1 gain
+ * @param {number} duration  seconds
+ * @param {number} [delay]   seconds before starting (default 0)
  */
 function beep(freq, vol, duration, delay = 0) {
   try {
@@ -855,8 +860,8 @@ function checkForAd() {
     const expectedId = streams[streamIndex].videoId;
     const urlHasOurVideo = currentUrl.includes(expectedId);
 
-    // Heuristic: playing + short duration (< 120s) + doesn't match our stream
-    const possibleAd = isPlaying && duration > 0 && duration < 120 && !urlHasOurVideo;
+    // Heuristic: playing + short duration (< MAX_AD_DURATION_SECONDS) + doesn't match our stream
+    const possibleAd = isPlaying && duration > 0 && duration < MAX_AD_DURATION_SECONDS && !urlHasOurVideo;
 
     if (possibleAd) {
       showSkipAd();
@@ -1234,7 +1239,7 @@ function toggleAmbient(sound) {
 const QUOTES = [
   { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
   { text: 'Focus on being productive instead of busy.', author: 'Tim Ferriss' },
-  { text: 'It is during our darkest moments that we must focus to see the light.', author: 'Aristotle' },
+  { text: 'It is during our darkest moments that we must focus to see the light.', author: 'Aristotle (attributed)' },
   { text: 'Concentrate all your thoughts upon the work at hand.', author: 'Alexander Graham Bell' },
   { text: 'The successful warrior is the average man, with laser-like focus.', author: 'Bruce Lee' },
   { text: 'Do what you can, with what you have, where you are.', author: 'Theodore Roosevelt' },
