@@ -1163,7 +1163,7 @@ button { cursor: pointer; }
   transform: translateY(10px);
   pointer-events: none;
 }
-.pomo-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--text-muted); filter: grayscale(1); }
+.pomo-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--text-muted); }
 #big-clock-pomo-time {
   font-size: 22px;
   font-weight: 700;

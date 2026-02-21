@@ -62,7 +62,7 @@ const MAX_AD_DURATION_SECONDS = 120;
 let adCheckInterval = null;
 
 // ── Settings state ─────────────────────────────────────────
-let settings = { theme: 'dark', clockFormat: 'system', scene: 'gradient', showSeconds: false, showDate: true, notifSounds: true, autoResume: false, showQuoteOnStart: false };
+let settings = { theme: 'dark', clockFormat: 'system', scene: 'gradient', showSeconds: false, showDate: true, notifSounds: true, autoResume: true, showQuoteOnStart: false };
 
 function loadSettings() {
   try {
