@@ -81,7 +81,7 @@ const MAX_AD_DURATION_SECONDS = 120;
 let adCheckInterval = null;
 
 // ── Settings state ─────────────────────────────────────────
-let settings = { theme: 'dark', clockFormat: 'system', scene: 'gradient', showSeconds: false, showDate: true, notifSounds: true, autoResume: true, showQuoteOnStart: false };
+let settings = { theme: 'dark', clockFormat: 'system', scene: 'gradient', showSeconds: false, showDate: true, notifSounds: true, autoResume: true, showQuoteOnStart: false, showBriefs: true };
 
 function loadSettings() {
   try {
@@ -136,12 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initSkipAd();
   initAmbientSounds();
   initQuote();
-  initClockPanel();
+  initClockClick();
   initEasterEggs();
   initMusicSource();
   initVideoControls();
   initSpotifyUI();
   initRunningTools();
+  initCredits();
+  initSettingHelps();
+  initZenExit();
   loadVideos();
 
   // Pre-init Spotify controller so it's ready when user switches source
@@ -610,6 +613,7 @@ function closeForeground() {
 // ═══════════════════════════════════════════════════════════
 
 function setMusicSource(source) {
+  const prevSource = musicSource;
   musicSource = source;
   localStorage.setItem('focusfi-music-source', source);
 
@@ -625,23 +629,73 @@ function setMusicSource(source) {
   if (spotifySection) spotifySection.classList.toggle('hidden', source !== 'spotify');
 
   if (source === 'spotify') {
-    ytWrapper.classList.add('source-hidden');
+    // Fade out YouTube before switching
+    if (prevSource === 'youtube' && player) {
+      fadeOutYouTube(() => {
+        ytWrapper.classList.add('source-hidden');
+      });
+    } else {
+      ytWrapper.classList.add('source-hidden');
+    }
     spotifyWrapper.classList.remove('hidden');
-    if (player) player.pause();
     loadSpotifyPlaylist(spotifyIndex);
-    // Show view button for Spotify — opens web player
     document.getElementById('btn-view').style.display = '';
     hideSkipAd();
   } else {
-    ytWrapper.classList.remove('source-hidden');
+    // Fade in YouTube
     spotifyWrapper.classList.add('hidden');
+    ytWrapper.classList.remove('source-hidden');
     document.getElementById('btn-view').style.display = '';
     updateStreamName();
     if (player) {
       setStreamStatus('Live');
-      player.play();
+      // If coming from spotify, fade in
+      if (prevSource === 'spotify') {
+        fadeInYouTube();
+      } else {
+        player.play();
+      }
     }
   }
+}
+
+/** Fade YT volume out over 500ms, then call cb and pause. */
+function fadeOutYouTube(cb) {
+  if (!player || !player.player || typeof player.player.getVolume !== 'function') {
+    if (player) player.pause();
+    cb?.();
+    return;
+  }
+  const startVol = player.player.getVolume();
+  const steps = 10;
+  let step = 0;
+  const iv = setInterval(() => {
+    step++;
+    const v = Math.max(0, startVol * (1 - step / steps));
+    try { player.player.setVolume(v); } catch {}
+    if (step >= steps) {
+      clearInterval(iv);
+      player.pause();
+      try { player.player.setVolume(startVol); } catch {}
+      cb?.();
+    }
+  }, 50);
+}
+
+/** Resume YT and fade volume in over 500ms. */
+function fadeInYouTube() {
+  if (!player) return;
+  const savedVol = parseInt(localStorage.getItem('focusfi-volume'), 10) || 50;
+  try { player.player.setVolume(0); } catch {}
+  player.play();
+  const steps = 10;
+  let step = 0;
+  const iv = setInterval(() => {
+    step++;
+    const v = Math.min(savedVol, savedVol * (step / steps));
+    try { player.player.setVolume(v); } catch {}
+    if (step >= steps) clearInterval(iv);
+  }, 50);
 }
 
 /**
@@ -1397,7 +1451,6 @@ function initStreamDialog() {
   openBtn.addEventListener('click', () => {
     renderPresets();
     dialog.classList.remove('hidden');
-    document.getElementById('custom-url-input').focus();
   });
 
   closeBtn.addEventListener('click', () => dialog.classList.add('hidden'));
@@ -1932,6 +1985,18 @@ function initSettings() {
     });
   }
 
+  // Show briefs toggle
+  const showBriefsCb = document.getElementById('setting-show-briefs');
+  if (showBriefsCb) {
+    showBriefsCb.checked = settings.showBriefs;
+    showBriefsCb.addEventListener('change', () => {
+      settings.showBriefs = showBriefsCb.checked;
+      saveSettings();
+      const bar = document.getElementById('running-tools-bar');
+      if (bar) bar.style.display = settings.showBriefs ? '' : 'none';
+    });
+  }
+
   // Auto-theme: check every minute
   if (settings.theme === 'auto') startAutoThemeTimer();
 }
@@ -2077,55 +2142,33 @@ function triggerZenMode() {
   zenActive = !zenActive;
   const header = document.getElementById('header');
   const playerBar = document.getElementById('player-bar');
+  const zenExitBar = document.getElementById('zen-exit-bar');
   if (zenActive) {
     header.classList.add('zen-hidden');
     playerBar.classList.add('zen-hidden');
-    showToast('Zen mode ON — type "zen" again to exit');
+    if (zenExitBar) zenExitBar.classList.add('hidden');
+    showToast('Zen mode ON — move mouse to show exit option');
   } else {
     header.classList.remove('zen-hidden');
     playerBar.classList.remove('zen-hidden');
+    if (zenExitBar) zenExitBar.classList.add('hidden');
     showToast('Zen mode OFF');
   }
 }
 
 // ═══════════════════════════════════════════════════════════
-// CLOCK PANEL (tool)
+// MINI CLOCK CLICK → CLOCK SCENE
 // ═══════════════════════════════════════════════════════════
 
-function initClockPanel() {
-  function tick() {
-    const now = new Date();
-    let hours = now.getHours();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-
-    const use12 = settings.clockFormat === '12h' ||
-      (settings.clockFormat === 'system' &&
-        /[AP]M/i.test(new Date().toLocaleTimeString([], { hour: 'numeric' })));
-
-    let ampm = '';
-    if (use12) {
-      ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-    }
-
-    const hEl = document.getElementById('panel-clock-hours');
-    const mEl = document.getElementById('panel-clock-minutes');
-    const sEl = document.getElementById('panel-clock-seconds');
-    const aEl = document.getElementById('panel-clock-ampm');
-    const dEl = document.getElementById('panel-clock-date');
-    if (!hEl) return;
-
-    hEl.textContent = use12 ? String(hours) : String(hours).padStart(2, '0');
-    mEl.textContent = String(minutes).padStart(2, '0');
-    sEl.textContent = String(seconds).padStart(2, '0');
-    aEl.textContent = ampm ? ` ${ampm}` : '';
-    dEl.textContent = now.toLocaleDateString([], {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+function initClockClick() {
+  const headerClock = document.getElementById('clock');
+  if (headerClock) {
+    headerClock.style.cursor = 'pointer';
+    headerClock.addEventListener('click', () => {
+      setBackground('gradient');
+      showToast('Switched to Clock scene');
     });
   }
-  tick();
-  setInterval(tick, 1000);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2138,11 +2181,16 @@ function initRunningTools() {
   // Update running tools bar every 500ms
   runningToolsInterval = setInterval(updateRunningTools, 500);
   updateRunningTools();
+  // Apply saved briefs preference
+  if (!settings.showBriefs) {
+    const bar = document.getElementById('running-tools-bar');
+    if (bar) bar.style.display = 'none';
+  }
 }
 
 function updateRunningTools() {
   const bar = document.getElementById('running-tools-bar');
-  if (!bar) return;
+  if (!bar || !settings.showBriefs) return;
   const chips = [];
 
   // Pomodoro timer (live instance)
@@ -2152,10 +2200,15 @@ function updateRunningTools() {
     if (!isOpen) {
       const timeStr = timer.format(timer.timeLeft);
       const modeLabel = timer.mode === 'focus' ? 'Focus' : 'Break';
+      let urgency = '';
+      if (timer.timeLeft <= 5) urgency = 'brief-flash';
+      else if (timer.timeLeft <= 15) urgency = 'brief-danger';
+      else if (timer.timeLeft <= 30) urgency = 'brief-warning';
       chips.push({
         id: 'timer-panel',
         icon: '#ic-tomato',
         text: `${modeLabel} ${timeStr}`,
+        cls: urgency,
       });
     }
   }
@@ -2170,6 +2223,7 @@ function updateRunningTools() {
         id: 'stopwatch-panel',
         icon: '#ic-stopwatch',
         text: formatMs(total),
+        cls: '',
       });
     }
   }
@@ -2181,10 +2235,15 @@ function updateRunningTools() {
     if (!isOpen) {
       const m = Math.floor(cdLeft / 60);
       const s = cdLeft % 60;
+      let urgency = '';
+      if (cdLeft <= 5) urgency = 'brief-flash';
+      else if (cdLeft <= 15) urgency = 'brief-danger';
+      else if (cdLeft <= 30) urgency = 'brief-warning';
       chips.push({
         id: 'countdown-panel',
         icon: '#ic-hourglass',
         text: `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`,
+        cls: urgency,
       });
     }
   }
@@ -2195,17 +2254,44 @@ function updateRunningTools() {
     const isOpen = panel && !panel.classList.contains('hidden');
     if (!isOpen) {
       const label = document.getElementById('breathing-label');
+      const circle = document.getElementById('breathing-circle');
+      let breathCls = '';
+      if (circle) {
+        if (circle.classList.contains('inhale')) breathCls = 'brief-inhale';
+        else if (circle.classList.contains('hold')) breathCls = 'brief-hold';
+        else if (circle.classList.contains('exhale')) breathCls = 'brief-exhale';
+      }
       chips.push({
         id: 'breathing-panel',
         icon: '#ic-wind',
         text: label ? label.textContent : 'Breathing',
+        cls: breathCls,
+      });
+    }
+  }
+
+  // Ambient sounds (when any are playing)
+  const activeAmbientCount = Object.keys(ambientAudios).length;
+  if (activeAmbientCount > 0) {
+    const panel = document.getElementById('ambient-panel');
+    const isOpen = panel && !panel.classList.contains('hidden');
+    if (!isOpen) {
+      const names = Object.keys(ambientAudios).map(id => {
+        const s = AMBIENT_SOUNDS.find(s => s.id === id);
+        return s ? s.name : id;
+      });
+      const text = names.length <= 2 ? names.join(', ') : `${names.length} sounds`;
+      chips.push({
+        id: 'ambient-panel',
+        icon: '#ic-headphones',
+        text: text,
+        cls: 'brief-ambient',
       });
     }
   }
 
   // Build HTML
   const existing = bar.querySelectorAll('.running-tool-chip');
-  const existingIds = new Set([...existing].map(el => el.dataset.panel));
   const newIds = new Set(chips.map(c => c.id));
 
   // Remove stale chips
@@ -2224,7 +2310,6 @@ function updateRunningTools() {
         const panel = document.getElementById(chip.id);
         if (panel) {
           panel.classList.remove('hidden');
-          // Mark the tools menu item active
           const menuItem = document.querySelector(`.tools-menu-item[data-panel="${chip.id}"]`);
           if (menuItem) menuItem.classList.add('active');
         }
@@ -2232,5 +2317,93 @@ function updateRunningTools() {
       bar.appendChild(el);
     }
     el.querySelector('span').textContent = chip.text;
+    // Update urgency/phase class
+    el.classList.remove('brief-warning', 'brief-danger', 'brief-flash', 'brief-inhale', 'brief-hold', 'brief-exhale', 'brief-ambient');
+    if (chip.cls) el.classList.add(chip.cls);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CREDITS
+// ═══════════════════════════════════════════════════════════
+
+function initCredits() {
+  const btn = document.getElementById('btn-credits');
+  const panel = document.getElementById('credits-panel');
+  if (btn && panel) {
+    btn.addEventListener('click', () => {
+      panel.classList.toggle('hidden');
+    });
+    // Wire up close button inside credits panel
+    panel.querySelectorAll('.close-panel').forEach(closeBtn => {
+      closeBtn.addEventListener('click', () => panel.classList.add('hidden'));
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTING HELP TOOLTIPS
+// ═══════════════════════════════════════════════════════════
+
+function initSettingHelps() {
+  document.querySelectorAll('.setting-help').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const tip = btn.dataset.tip;
+      if (tip) showToast(tip, 4000);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// ZEN MODE EXIT BAR
+// ═══════════════════════════════════════════════════════════
+
+function initZenExit() {
+  const zenExitBar = document.getElementById('zen-exit-bar');
+  const exitBtn = document.getElementById('btn-zen-exit');
+  if (!zenExitBar || !exitBtn) return;
+
+  let hideTimer = null;
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  function showZenExit() {
+    if (!zenActive) return;
+    zenExitBar.classList.remove('hidden');
+    clearTimeout(hideTimer);
+    if (isTouchDevice) {
+      hideTimer = setTimeout(() => {
+        zenExitBar.classList.add('hidden');
+      }, 5000);
+    }
+  }
+
+  function hideZenExit() {
+    if (!zenActive) return;
+    hideTimer = setTimeout(() => {
+      zenExitBar.classList.add('hidden');
+    }, 2000);
+  }
+
+  // Mouse move: show on move, hide when stops
+  document.addEventListener('mousemove', () => {
+    if (!zenActive) return;
+    showZenExit();
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      zenExitBar.classList.add('hidden');
+    }, 2000);
+  });
+
+  // Touch: show on tap, auto-hide after 5s
+  document.addEventListener('touchstart', () => {
+    if (!zenActive) return;
+    showZenExit();
+  }, { passive: true });
+
+  // Exit button click
+  exitBtn.addEventListener('click', () => {
+    triggerZenMode(); // toggles zen off
   });
 }

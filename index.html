@@ -167,6 +167,20 @@
     <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
   </symbol>
 
+  <symbol id="ic-more-vert" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="5" r="2"/>
+    <circle cx="12" cy="12" r="2"/>
+    <circle cx="12" cy="19" r="2"/>
+  </symbol>
+
+  <symbol id="ic-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </symbol>
+
+  <symbol id="ic-github" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </symbol>
+
 </svg>
 
 <!-- ═══════════════════════════════════════════════
@@ -272,10 +286,6 @@
         <button class="tools-menu-item" data-panel="ambient-panel">
           <svg class="icon"><use href="#ic-headphones"/></svg>
           <span>Ambient</span>
-        </button>
-        <button class="tools-menu-item" data-panel="clock-panel">
-          <svg class="icon"><use href="#ic-clock"/></svg>
-          <span>Clock</span>
         </button>
         <button class="tools-menu-item" data-panel="quote-panel">
           <svg class="icon"><use href="#ic-quote"/></svg>
@@ -488,31 +498,6 @@
     </div>
   </div>
 
-  <!-- ── Clock Tool ── -->
-  <div id="clock-panel" class="panel hidden" role="region" aria-label="Clock">
-    <div class="panel-header">
-      <h3>Clock</h3>
-      <div class="panel-actions">
-        <button class="help-btn" aria-label="About Clock"
-          data-tip="A fully-featured clock with time, date, and seconds display — same as the main clock scene but available as a side panel.">
-          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
-        </button>
-        <button class="close-panel" data-panel="clock-panel" aria-label="Close">
-          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
-        </button>
-      </div>
-    </div>
-    <div class="panel-body">
-      <div class="panel-clock">
-        <div class="panel-clock-time">
-          <span id="panel-clock-hours">12</span><span class="panel-clock-sep">:</span><span id="panel-clock-minutes">00</span><span class="panel-clock-ampm" id="panel-clock-ampm"> AM</span>
-        </div>
-        <div class="panel-clock-seconds" id="panel-clock-seconds">00</div>
-        <div class="panel-clock-date" id="panel-clock-date">Saturday, January 1, 2026</div>
-      </div>
-    </div>
-  </div>
-
   <!-- ── Focus Quote ── -->
   <div id="quote-panel" class="panel hidden" role="region" aria-label="Focus Quote">
     <div class="panel-header">
@@ -547,7 +532,7 @@
       </div>
     </div>
     <div class="panel-body">
-      <p class="section-label">Scene</p>
+      <p class="section-label">Scene <button class="setting-help" data-tip="Choose your background: Clock shows a large centered clock, Video cycles MP4 backgrounds, Stream uses the YouTube video as the background.">?</button></p>
       <div class="bg-selector" role="group" aria-label="Background mode">
         <button class="bg-btn active" data-bg="gradient">Clock</button>
         <button class="bg-btn" data-bg="gif">Video</button>
@@ -575,7 +560,7 @@
         </div>
       </div>
 
-      <p class="section-label" style="margin-top:16px">Music Source</p>
+      <p class="section-label" style="margin-top:16px">Music Source <button class="setting-help" data-tip="Switch between YouTube livestreams and Spotify playlists as your music source.">?</button></p>
       <div class="source-selector" role="group" aria-label="Music source">
         <button class="source-btn active" data-source="youtube">YouTube</button>
         <button class="source-btn" data-source="spotify">Spotify</button>
@@ -594,7 +579,7 @@
         </div>
       </div>
 
-      <p class="section-label" style="margin-top:16px">Appearance</p>
+      <p class="section-label" style="margin-top:16px">Appearance <button class="setting-help" data-tip="Choose a color theme. Auto switches between light, evening, and dark based on the time of day.">?</button></p>
       <div class="theme-selector" role="group" aria-label="Theme">
         <button class="theme-btn" data-theme="auto">Auto</button>
         <button class="theme-btn active" data-theme="dark">Dark</button>
@@ -602,35 +587,83 @@
         <button class="theme-btn" data-theme="evening">Evening</button>
       </div>
 
-      <p class="section-label" style="margin-top:16px">Clock Format</p>
+      <p class="section-label" style="margin-top:16px">Clock Format <button class="setting-help" data-tip="System uses your device's locale preference. Choose 12-hour or 24-hour to override.">?</button></p>
       <div class="clock-fmt-selector" role="group" aria-label="Clock format">
         <button class="clock-fmt-btn active" data-fmt="system">System</button>
         <button class="clock-fmt-btn" data-fmt="12h">12-hour</button>
         <button class="clock-fmt-btn" data-fmt="24h">24-hour</button>
       </div>
 
-      <p class="section-label" style="margin-top:16px">Display</p>
+      <p class="section-label" style="margin-top:16px">Display <button class="setting-help" data-tip="Toggle various display elements and behavior options.">?</button></p>
       <div class="settings-toggles">
         <label class="setting-toggle-row">
-          <span>Show seconds on clock</span>
+          <span>Show seconds on clock <button class="setting-help" data-tip="Show seconds alongside the hours and minutes on the clock.">?</button></span>
           <input type="checkbox" id="setting-show-seconds" class="setting-checkbox">
         </label>
         <label class="setting-toggle-row">
-          <span>Show date on clock</span>
+          <span>Show date on clock <button class="setting-help" data-tip="Display the full date beneath the big clock on the gradient scene.">?</button></span>
           <input type="checkbox" id="setting-show-date" class="setting-checkbox" checked>
         </label>
         <label class="setting-toggle-row">
-          <span>Notification sounds</span>
+          <span>Show briefs <button class="setting-help" data-tip="Show live mini-status chips in the header for running tools like timers, breathing, and ambient sounds.">?</button></span>
+          <input type="checkbox" id="setting-show-briefs" class="setting-checkbox" checked>
+        </label>
+        <label class="setting-toggle-row">
+          <span>Notification sounds <button class="setting-help" data-tip="Play audio alerts when timers end. Disable for silent operation.">?</button></span>
           <input type="checkbox" id="setting-notif-sounds" class="setting-checkbox" checked>
         </label>
         <label class="setting-toggle-row">
-          <span>Auto-resume after break</span>
+          <span>Auto-resume after break <button class="setting-help" data-tip="Automatically resume music when a Pomodoro break ends.">?</button></span>
           <input type="checkbox" id="setting-auto-resume" class="setting-checkbox" checked>
         </label>
         <label class="setting-toggle-row">
-          <span>Show focus quote on start</span>
+          <span>Show focus quote on start <button class="setting-help" data-tip="Open the focus quote panel automatically when focusfi loads.">?</button></span>
           <input type="checkbox" id="setting-show-quote" class="setting-checkbox">
         </label>
+      </div>
+
+      <div class="settings-credits">
+        <button id="btn-credits" class="btn-credits">
+          <svg class="icon icon-sm"><use href="#ic-heart"/></svg>
+          Credits
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Credits Panel ── -->
+  <div id="credits-panel" class="panel hidden" role="region" aria-label="Credits">
+    <div class="panel-header">
+      <h3>Credits</h3>
+      <div class="panel-actions">
+        <button class="close-panel" data-panel="credits-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body credits-body">
+      <div class="credits-section">
+        <p class="credits-title">Made by</p>
+        <p class="credits-name">Vaibhav Gannavarapu</p>
+        <a href="https://github.com/yb-g" target="_blank" rel="noopener" class="credits-link">
+          <svg class="icon icon-sm"><use href="#ic-github"/></svg> github.com/yb-g
+        </a>
+      </div>
+      <div class="credits-section">
+        <p class="credits-title">Built with</p>
+        <p class="credits-name">GitHub Copilot</p>
+        <p class="credits-detail">AI pair-programming assistant by GitHub</p>
+      </div>
+      <div class="credits-section">
+        <p class="credits-title">Repository</p>
+        <a href="https://github.com/yb-g-personal/focusfi" target="_blank" rel="noopener" class="credits-link">
+          <svg class="icon icon-sm"><use href="#ic-github"/></svg> yb-g-personal/focusfi
+        </a>
+      </div>
+      <div class="credits-section">
+        <p class="credits-title">Assets</p>
+        <p class="credits-detail">Ambient sounds from <a href="https://pixabay.com/" target="_blank" rel="noopener">Pixabay</a></p>
+        <p class="credits-detail">Background videos from <a href="https://moewalls.com/" target="_blank" rel="noopener">MoeWalls</a></p>
       </div>
     </div>
   </div>
@@ -649,10 +682,10 @@
       </button>
     </div>
     <div class="dialog-body">
-      <p class="section-label">Preset streams</p>
+      <p class="section-label">Preset streams <button class="setting-help" data-tip="Select from curated lofi livestreams. When Spotify is active, these show Spotify playlists instead.">?</button></p>
       <div id="stream-presets"></div>
 
-      <p class="section-label" style="margin-top:20px">Custom stream</p>
+      <p class="section-label" style="margin-top:20px">Custom stream <button class="setting-help" data-tip="Paste any YouTube URL or video ID to add it as a custom stream you can control with focusfi's player.">?</button></p>
       <p class="dialog-hint">Paste a YouTube URL or video ID to play your own stream with the same controls:</p>
       <div class="input-row">
         <input type="text" id="custom-url-input"
@@ -710,7 +743,7 @@
       <svg class="icon"><use href="#ic-monitor"/></svg>
     </button>
     <button id="btn-stream-settings" aria-label="Stream settings" title="Stream settings">
-      <svg class="icon"><use href="#ic-settings"/></svg>
+      <svg class="icon"><use href="#ic-more-vert"/></svg>
     </button>
   </div>
 
@@ -729,6 +762,9 @@
   };
 </script>
 <script src="https://www.youtube.com/iframe_api"></script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async
+  onload="window._spotifyIFrameAPI=SpotifyIframeApi;window.dispatchEvent(new CustomEvent('spotify-iframe-ready'))"
+  onerror="console.warn('Spotify IFrame API failed to load')"></script>
 <script type="module" src="js/app.js"></script>
 
 <!-- ═══════════════════════════════════════════════
@@ -750,6 +786,11 @@
 <!-- ═══════════════════════════════════════════════
      LOADING SCREEN
      ═══════════════════════════════════════════════ -->
+<!-- Zen mode exit bar (appears on mouse move / tap while in zen mode) -->
+<div id="zen-exit-bar" class="zen-exit-bar hidden">
+  <button id="btn-zen-exit">Exit Zen Mode</button>
+</div>
+
 <div id="loader" class="loader" aria-hidden="true">
   <div class="loader-content">
     <svg class="loader-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

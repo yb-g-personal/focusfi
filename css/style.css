@@ -311,8 +311,15 @@ button { cursor: pointer; }
   background: rgba(0, 0, 0, 0.72);
   z-index: 200;
   backdrop-filter: var(--blur);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  opacity: 1;
+  visibility: visible;
 }
-#modal-overlay.hidden { display: none; }
+#modal-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
 #modal-close {
   position: absolute;
@@ -429,42 +436,90 @@ button { cursor: pointer; }
 }
 /* Running tools bar adapts to scenes — stays compact in header center */
 
-/* ── Panel Clock (clock tool) ─────────────────────────────── */
-.panel-clock {
-  text-align: center;
-  padding: 20px 0 10px;
+/* ── Brief chip urgency animations ────────────────────────── */
+.running-tool-chip.brief-warning {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
 }
-.panel-clock-time {
-  font-size: 48px;
-  font-weight: 700;
-  letter-spacing: -2px;
-  color: var(--text);
-  line-height: 1;
+.running-tool-chip.brief-warning:hover {
+  background: #f59e0b;
+  color: var(--bg);
 }
-.panel-clock-sep {
-  opacity: 0.4;
-  animation: blink 1s step-end infinite;
+.running-tool-chip.brief-danger {
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(248, 113, 113, 0.15);
 }
-@keyframes blink {
-  50% { opacity: 0; }
+.running-tool-chip.brief-danger:hover {
+  background: var(--error);
+  color: var(--bg);
 }
-.panel-clock-ampm {
-  font-size: 16px;
-  font-weight: 500;
+@keyframes briefFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.running-tool-chip.brief-flash {
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(248, 113, 113, 0.2);
+  animation: briefFlash 0.5s ease infinite;
+}
+.running-tool-chip.brief-flash:hover {
+  background: var(--error);
+  color: var(--bg);
+  animation: none;
+}
+/* Breathing brief color classes */
+.running-tool-chip.brief-inhale {
+  border-color: var(--accent-hi);
+  color: var(--accent-hi);
+  background: rgba(124, 106, 245, 0.2);
+}
+.running-tool-chip.brief-hold {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(74, 222, 128, 0.15);
+}
+.running-tool-chip.brief-exhale {
+  border-color: var(--text-muted);
   color: var(--text-muted);
-  margin-left: 4px;
+  background: rgba(110, 122, 150, 0.15);
 }
-.panel-clock-seconds {
-  font-size: 18px;
-  font-weight: 300;
-  color: var(--text-muted);
-  letter-spacing: 2px;
-  margin-top: 4px;
+/* Ambient brief */
+.running-tool-chip.brief-ambient {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(74, 222, 128, 0.12);
 }
-.panel-clock-date {
-  font-size: 12px;
+.running-tool-chip.brief-ambient:hover {
+  background: var(--success);
+  color: var(--bg);
+}
+
+/* ── Setting help indicators ──────────────────────────────── */
+.setting-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--border-hi);
+  background: transparent;
   color: var(--text-dim);
-  margin-top: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 4px;
+  padding: 0;
+  vertical-align: middle;
+  transition: all var(--transition);
+  position: relative;
+}
+.setting-help:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .header-right {
@@ -557,9 +612,17 @@ button { cursor: pointer; }
   box-shadow: var(--shadow);
   z-index: 300;
   padding: 5px;
-  animation: panelIn 0.15s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
 }
-.tools-menu.hidden { display: none; }
+.tools-menu.hidden {
+  opacity: 0;
+  transform: translateY(-6px);
+  visibility: hidden;
+  pointer-events: none;
+}
 .tools-menu-item {
   display: flex;
   align-items: center;
@@ -660,13 +723,17 @@ button { cursor: pointer; }
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  animation: panelIn 0.2s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
 }
-@keyframes panelIn {
-  from { opacity: 0; transform: translateX(12px); }
-  to   { opacity: 1; transform: translateX(0); }
+.panel.hidden {
+  opacity: 0;
+  transform: translateX(12px);
+  visibility: hidden;
+  pointer-events: none;
 }
-.panel.hidden { display: none; }
 
 .panel-header {
   display: flex;
@@ -1174,8 +1241,15 @@ button { cursor: pointer; }
   background: rgba(0,0,0,0.6);
   z-index: 150;
   backdrop-filter: var(--blur);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  opacity: 1;
+  visibility: visible;
 }
-.dialog-backdrop.hidden { display: none; }
+.dialog-backdrop.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
 .dialog {
   width: min(460px, 92vw);
@@ -1184,6 +1258,13 @@ button { cursor: pointer; }
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: scale(1);
+  opacity: 1;
+}
+.dialog-backdrop.hidden .dialog {
+  transform: scale(0.95);
+  opacity: 0;
 }
 .dialog-header {
   display: flex;
@@ -1273,7 +1354,17 @@ button { cursor: pointer; }
   font-size: 12px;
   margin-top: 8px;
 }
-.error-msg.hidden { display: none; }
+.error-msg {
+  transition: opacity 0.2s ease;
+  opacity: 1;
+}
+.error-msg.hidden {
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+}
 
 /* ── Big Clock ────────────────────────────────────────────── */
 .big-clock {
@@ -1346,7 +1437,8 @@ button { cursor: pointer; }
   transition: opacity 0.3s ease;
 }
 .big-clock-seconds.hidden {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
 }
 .big-clock-date {
   font-size: min(1.8vw, 20px);
@@ -1356,7 +1448,8 @@ button { cursor: pointer; }
   letter-spacing: 0.5px;
 }
 .big-clock-date.hidden {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Pomodoro overlay on big clock */
@@ -1652,6 +1745,118 @@ button { cursor: pointer; }
   pointer-events: none;
 }
 
+/* ── Zen Exit Bar ────────────────────────────────────────── */
+.zen-exit-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  z-index: 9998;
+  opacity: 1;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.zen-exit-bar.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+  pointer-events: none;
+}
+.zen-exit-bar button {
+  padding: 10px 28px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.zen-exit-bar button:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── Credits ─────────────────────────────────────────────── */
+.settings-credits {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.btn-credits {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-credits:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.btn-credits .icon {
+  width: 14px;
+  height: 14px;
+  color: #f87171;
+}
+.credits-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.credits-section {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.credits-section:last-child { border-bottom: none; padding-bottom: 0; }
+.credits-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.credits-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.credits-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.credits-detail a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.credits-detail a:hover { text-decoration: underline; }
+.credits-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  margin-top: 4px;
+}
+.credits-link:hover { text-decoration: underline; }
+.credits-link .icon {
+  width: 14px;
+  height: 14px;
+}
+
 /* ── Alarm Overlay ───────────────────────────────────────── */
 .alarm-overlay {
   position: fixed;
@@ -1663,12 +1868,14 @@ button { cursor: pointer; }
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  animation: alarm-fade-in 0.3s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  opacity: 1;
+  visibility: visible;
 }
-.alarm-overlay.hidden { display: none; }
-@keyframes alarm-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+.alarm-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 .alarm-content {
   display: flex;
@@ -1772,8 +1979,19 @@ button { cursor: pointer; }
   background: rgba(255,255,255,0.03);
   border: 1px solid var(--border);
   border-radius: 10px;
+  transition: opacity 0.25s ease, max-height 0.3s ease;
+  opacity: 1;
+  max-height: 500px;
+  overflow: hidden;
 }
-.spotify-section.hidden { display: none; }
+.spotify-section.hidden {
+  opacity: 0;
+  max-height: 0;
+  padding: 0 12px;
+  margin-top: 0;
+  border-width: 0;
+  pointer-events: none;
+}
 .spotify-hint {
   font-size: 11.5px;
   color: var(--text-muted);
@@ -1848,8 +2066,15 @@ button { cursor: pointer; }
   border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow);
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+  opacity: 1;
+  visibility: visible;
 }
-#spotify-wrapper.hidden { display: none; }
+#spotify-wrapper.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
 /* Spotify foreground modal (centered like YouTube modal) */
 #spotify-wrapper.spotify-modal {
@@ -1873,8 +2098,16 @@ button { cursor: pointer; }
 /* ── Video Background Controls ───────────────────────────── */
 .video-bg-controls {
   margin-top: 10px;
+  transition: opacity 0.2s ease, max-height 0.3s ease;
+  opacity: 1;
+  max-height: 200px;
+  overflow: hidden;
 }
-.video-bg-controls.hidden { display: none; }
+.video-bg-controls.hidden {
+  opacity: 0;
+  max-height: 0;
+  pointer-events: none;
+}
 .vid-mode-selector {
   display: flex;
   gap: 3px;
@@ -1937,9 +2170,17 @@ button { cursor: pointer; }
   right: 18px;
   z-index: 150;
   pointer-events: auto;
-  animation: toastIn 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
 }
-.skip-ad-overlay.hidden { display: none; }
+.skip-ad-overlay.hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  visibility: hidden;
+  pointer-events: none;
+}
 .btn-skip-ad {
   display: flex;
   align-items: center;
@@ -2053,4 +2294,62 @@ button { cursor: pointer; }
   .breathing-circle { width: 100px; height: 100px; }
   .breathing-label { font-size: 13px; }
   #btn-view { display: none; }
+}
+
+/* mobile landscape */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --header-h: 40px;
+    --player-h: 44px;
+  }
+  html, body {
+    overflow-y: auto;
+  }
+  #header {
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .logo-svg { width: 16px; height: 16px; }
+  .logo-text { font-size: 13px; }
+  .tool-toggle { padding: 4px 6px; font-size: 11px; }
+  .tool-toggle .tl { display: none; }
+  .clock { font-size: 11px; }
+  #player-bar {
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .player-center button { width: 28px; height: 28px; }
+  .btn-play { width: 32px !important; height: 32px !important; }
+  .player-icon { width: 14px; height: 14px; }
+  #stream-name { font-size: 12px; }
+  #stream-status { font-size: 10px; }
+  #volume-slider { width: 50px; }
+  #tools-container {
+    max-height: calc(100vh - var(--header-h) - var(--player-h) - 8px);
+    right: 6px;
+  }
+  .panel { width: min(var(--panel-w), calc(100vw - 16px)); }
+  .panel-body { padding: 8px 10px; max-height: calc(100vh - var(--header-h) - var(--player-h) - 80px); overflow-y: auto; }
+  .big-clock {
+    top: calc(var(--header-h) + 4px);
+  }
+  .big-clock-time { font-size: min(18vh, 15vw); }
+  .big-clock-seconds { font-size: min(4vh, 3vw); }
+  .big-clock-date { font-size: min(2.5vh, 2vw); }
+  .big-clock-ampm { font-size: min(4vh, 4vw); }
+  .timer-display { font-size: 36px; }
+  .breathing-circle { width: 70px; height: 70px; }
+  .breathing-label { font-size: 11px; }
+  /* Spotify wrapper smaller */
+  #spotify-wrapper {
+    width: min(300px, 80vw);
+  }
+  .alarm-content {
+    padding: 24px 32px;
+  }
+  .alarm-ring { width: 48px; height: 48px; }
+  .alarm-icon { width: 28px; height: 28px; }
+  .alarm-message { font-size: 16px; }
+  .btn-alarm-stop { padding: 10px 28px; font-size: 14px; }
+  .dialog { width: min(400px, 92vw); }
 }
