@@ -61,6 +61,8 @@ let musicSource      = 'youtube'; // 'youtube' | 'spotify'
 let spotifyIndex     = 0;
 let spotifyController = null;
 let spotifyPaused     = true;
+let spotifyForeground = false;
+let adSkipCooldown    = false;
 
 /** @type {YouTubePlayer} */  let player;
 /** @type {PomodoroTimer} */  let timer;
@@ -457,6 +459,10 @@ function setPlayerMode(mode) {
   const overlay = document.getElementById('modal-overlay');
   overlay.classList.toggle('hidden', mode !== 'modal');
 
+  // Hide yt-cover in modal mode so user can interact with YouTube controls
+  const cover = document.getElementById('yt-cover');
+  if (cover) cover.style.display = (mode === 'modal') ? 'none' : '';
+
   // reflect in the view button
   document.getElementById('btn-view').classList.toggle('active', mode === 'modal');
 }
@@ -533,9 +539,19 @@ function switchStream() {
 
 function toggleForeground() {
   if (musicSource === 'spotify') {
-    // Open Spotify web player in new tab
-    const pl = SPOTIFY_PLAYLISTS[spotifyIndex];
-    window.open(`https://open.spotify.com/playlist/${pl.uri}`, '_blank');
+    // Toggle Spotify foreground modal
+    spotifyForeground = !spotifyForeground;
+    const wrapper = document.getElementById('spotify-wrapper');
+    const overlay = document.getElementById('modal-overlay');
+    if (spotifyForeground) {
+      wrapper.classList.add('spotify-modal');
+      overlay.classList.remove('hidden');
+      document.getElementById('btn-view').classList.add('active');
+    } else {
+      wrapper.classList.remove('spotify-modal');
+      overlay.classList.add('hidden');
+      document.getElementById('btn-view').classList.remove('active');
+    }
     return;
   }
   if (playerMode === 'modal') {
@@ -546,6 +562,14 @@ function toggleForeground() {
 }
 
 function closeForeground() {
+  // Handle Spotify foreground close
+  if (spotifyForeground) {
+    spotifyForeground = false;
+    document.getElementById('spotify-wrapper').classList.remove('spotify-modal');
+    document.getElementById('modal-overlay').classList.add('hidden');
+    document.getElementById('btn-view').classList.remove('active');
+    return;
+  }
   setPlayerMode(bgMode === 'stream' ? 'bg' : 'audio');
 }
 
@@ -1369,30 +1393,32 @@ function checkForAd() {
   }
 }
 
-let adAutoForeground = false;
-
 function showSkipAd() {
+  if (adSkipCooldown) return; // Prevent rapid-fire reloads
+  adSkipCooldown = true;
+
   document.getElementById('skip-ad-overlay').classList.remove('hidden');
-  // Auto-open foreground so user can interact with YouTube's native skip button
-  if (playerMode !== 'modal') {
+
+  // Auto-open foreground so user can see the stream
+  if (playerMode !== 'modal' && musicSource === 'youtube') {
     setPlayerMode('modal');
-    adAutoForeground = true;
   }
-  // Hide the transparent click-blocker so user can click YouTube's skip controls
-  const cover = document.getElementById('yt-cover');
-  if (cover) cover.style.display = 'none';
+
+  // Auto-skip: reload stream to bypass the ad
+  if (player) {
+    player.loadVideo(streams[streamIndex].videoId);
+    showToast('Ad detected — auto-skipping…');
+  }
+
+  // Cooldown before next auto-skip attempt
+  setTimeout(() => {
+    adSkipCooldown = false;
+    hideSkipAd();
+  }, 8000);
 }
 
 function hideSkipAd() {
   document.getElementById('skip-ad-overlay').classList.add('hidden');
-  // Restore yt-cover
-  const cover = document.getElementById('yt-cover');
-  if (cover) cover.style.display = '';
-  // Close foreground only if we auto-opened it
-  if (adAutoForeground) {
-    adAutoForeground = false;
-    closeForeground();
-  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2047,8 +2073,8 @@ let vizBars = [];
 let vizAnalyser = null;
 let vizAudioCtx = null;
 let vizMediaSource = null;
-let micStream = null;
-let micSource  = null;
+let tabAudioStream = null;
+let tabAudioSource = null;
 
 function initVisualizer() {
   vizCanvas = document.getElementById('bg-visualizer');
@@ -2070,37 +2096,56 @@ function resizeVizCanvas() {
 }
 
 /**
- * Try to capture system/tab audio via microphone input for visualizer.
- * This lets the visualizer react to YouTube & Spotify audio.
+ * Capture tab audio via getDisplayMedia for visualizer reactivity.
+ * This captures YouTube & Spotify audio playing in the current tab
+ * without using the microphone.
  */
-function enableMicVisualizer() {
-  if (micStream) return; // already capturing
-  navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+function enableTabAudioCapture() {
+  if (tabAudioStream) return; // already capturing
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    showToast('Tab audio capture not supported in this browser');
+    return;
+  }
+  navigator.mediaDevices.getDisplayMedia({
+    audio: true,
+    video: { width: 1, height: 1, frameRate: 1 }, // minimal video (required)
+    preferCurrentTab: true,       // Chrome: auto-select current tab
+    selfBrowserSurface: 'include', // Chrome: include this tab as option
+  })
     .then(stream => {
-      micStream = stream;
-      const { ctx, eqInput } = getSharedAudioGraph();
-      micSource = ctx.createMediaStreamSource(stream);
-      // Connect mic → analyser only (NOT destination to avoid feedback)
-      micSource.connect(sharedAnalyser);
-      showToast('Microphone enabled for visualizer');
+      tabAudioStream = stream;
+      // Stop the video track — we only need audio
+      stream.getVideoTracks().forEach(t => t.stop());
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        showToast('No audio track captured — visualizer uses ambient sounds');
+        return;
+      }
+      const { ctx } = getSharedAudioGraph();
+      tabAudioSource = ctx.createMediaStreamSource(new MediaStream(audioTracks));
+      // Connect to analyser only (NOT destination — avoids echo/feedback)
+      tabAudioSource.connect(sharedAnalyser);
+      showToast('Tab audio captured for visualizer');
+      // Clean up if the user stops sharing
+      audioTracks[0].addEventListener('ended', () => disableTabAudioCapture());
     })
     .catch(() => {
-      showToast('Mic access denied — visualizer reacts to ambient sounds only');
+      showToast('Audio capture cancelled — visualizer uses ambient sounds');
     });
 }
 
-function disableMicVisualizer() {
-  if (micSource) { try { micSource.disconnect(); } catch {} micSource = null; }
-  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+function disableTabAudioCapture() {
+  if (tabAudioSource) { try { tabAudioSource.disconnect(); } catch {} tabAudioSource = null; }
+  if (tabAudioStream) { tabAudioStream.getTracks().forEach(t => t.stop()); tabAudioStream = null; }
 }
 
 function startVisualizer() {
   if (vizAnimId) return;
   resizeVizCanvas();
 
-  // If no ambient sounds are playing, try mic capture for YouTube/Spotify audio reactivity
-  if (Object.keys(ambientAudios).length === 0 && !micStream) {
-    enableMicVisualizer();
+  // If no ambient sounds active, capture tab audio for YouTube/Spotify reactivity
+  if (Object.keys(ambientAudios).length === 0 && !tabAudioStream) {
+    enableTabAudioCapture();
   }
 
   let freqBuf = null;
@@ -2189,7 +2234,7 @@ function stopVisualizer() {
   if (vizCtx && vizCanvas) {
     vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
   }
-  disableMicVisualizer();
+  disableTabAudioCapture();
 }
 
 function hexToRgb(hex) {

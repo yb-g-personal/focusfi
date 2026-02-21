@@ -28,7 +28,7 @@ export class YouTubePlayer {
       videoId,
       playerVars: {
         autoplay:       1,
-        controls:       0,   // hide native controls
+        controls:       1,   // show native controls (visible in modal/foreground mode)
         mute:           1,   // start muted (browser autoplay policy)
         rel:            0,
         modestbranding: 1,
