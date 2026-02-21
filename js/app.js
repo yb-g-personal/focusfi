@@ -59,6 +59,8 @@ let videoShuffle     = false;  // true = shuffle, false = loop one
 let zenActive        = false;
 let musicSource      = 'youtube'; // 'youtube' | 'spotify'
 let spotifyIndex     = 0;
+let spotifyController = null;
+let spotifyPaused     = true;
 
 /** @type {YouTubePlayer} */  let player;
 /** @type {PomodoroTimer} */  let timer;
@@ -156,15 +158,16 @@ document.addEventListener('DOMContentLoaded', () => {
 function dismissLoader() {
   const loader = document.getElementById('loader');
   if (!loader) return;
-  // Play a gentle startup chime
-  playLoaderChime();
-  // Wait for the clock + text animations to finish (≈1.8s), then fade out
-  setTimeout(() => {
-    loader.classList.add('fade-out');
-    loader.addEventListener('transitionend', () => {
-      loader.classList.add('done');
-    }, { once: true });
-  }, 2000);
+  const enterBtn = document.getElementById('loader-enter');
+  if (enterBtn) {
+    enterBtn.addEventListener('click', () => {
+      playLoaderChime();
+      loader.classList.add('fade-out');
+      loader.addEventListener('transitionend', () => {
+        loader.classList.add('done');
+      }, { once: true });
+    });
+  }
 }
 
 /** Ethereal heavenly chime — layered pads + shimmer over the loader. */
@@ -375,6 +378,11 @@ async function loadVideos() {
     videoList = Array.isArray(data) ? data : (data.files || []);
     if (videoList.length > 0) {
       showVideo(0);
+      // If video bg mode was restored before manifest loaded, start playback now
+      if (bgMode === 'gif') {
+        const bgVid = document.getElementById('bg-video');
+        if (bgVid) bgVid.play().catch(() => {});
+      }
     }
   } catch { /* no manifest yet */ }
 }
@@ -452,7 +460,11 @@ function setPlayerMode(mode) {
 
 function initPlayerControls() {
   document.getElementById('btn-play-pause').addEventListener('click', () => {
-    if (musicSource === 'youtube' && player) player.toggle();
+    if (musicSource === 'spotify' && spotifyController) {
+      spotifyController.togglePlay();
+    } else if (musicSource === 'youtube' && player) {
+      player.toggle();
+    }
   });
 
   document.getElementById('btn-prev').addEventListener('click', () => {
@@ -548,8 +560,6 @@ function setMusicSource(source) {
     spotifyWrapper.classList.remove('hidden');
     if (player) player.pause();
     loadSpotifyPlaylist(spotifyIndex);
-    document.getElementById('stream-name').textContent = SPOTIFY_PLAYLISTS[spotifyIndex].name;
-    document.getElementById('stream-status').textContent = 'Spotify';
     // Hide view button for Spotify (no foreground video)
     document.getElementById('btn-view').style.display = 'none';
     hideSkipAd();
@@ -566,54 +576,76 @@ function setMusicSource(source) {
 }
 
 /**
- * Build a Spotify embed URL from a playlist/album/track URI or ID.
- * Supports full URLs like https://open.spotify.com/playlist/xxxxx
- * or bare IDs from the SPOTIFY_PLAYLISTS array.
+ * Ensure the Spotify IFrame API controller is created.
+ * Calls `cb` once the controller is ready.
  */
-function buildSpotifyEmbedUrl(uriOrUrl, type = 'playlist') {
-  // If it looks like a full Spotify URL, parse it
-  if (uriOrUrl.startsWith('http')) {
+function ensureSpotifyController(cb) {
+  if (spotifyController) { cb?.(); return; }
+  const api = window._spotifyIFrameAPI;
+  if (!api) {
+    // API not loaded yet — wait for it
+    window.addEventListener('spotify-iframe-ready', () => ensureSpotifyController(cb), { once: true });
+    return;
+  }
+  const element = document.getElementById('spotify-embed');
+  if (!element) return;
+  const options = {
+    width: '100%',
+    height: 352,
+    uri: `spotify:playlist:${SPOTIFY_PLAYLISTS[spotifyIndex].uri}`,
+  };
+  api.createController(element, options, (controller) => {
+    spotifyController = controller;
+    controller.addListener('playback_update', (e) => {
+      if (musicSource !== 'spotify') return;
+      spotifyPaused = e.data.isPaused;
+      updatePlayBtn(!e.data.isPaused);
+    });
+    controller.addListener('ready', () => {
+      cb?.();
+    });
+  });
+}
+
+/**
+ * Convert a Spotify URL/URI/ID to a canonical spotify:type:id URI.
+ */
+function toSpotifyUri(input, fallbackType = 'playlist') {
+  if (input.startsWith('spotify:')) return input;
+  if (input.startsWith('http')) {
     try {
-      const url = new URL(uriOrUrl);
+      const url = new URL(input);
       const parts = url.pathname.split('/').filter(Boolean);
-      // e.g. /playlist/0vvXsWCC9xrXsKd4FyS8kM or /album/xxxx or /track/xxxx
-      if (parts.length >= 2) {
-        type = parts[0]; // playlist, album, track, etc.
-        uriOrUrl = parts[1].split('?')[0];
-      }
-    } catch { /* not a URL, treat as ID */ }
+      if (parts.length >= 2) return `spotify:${parts[0]}:${parts[1].split('?')[0]}`;
+    } catch { /* not a URL */ }
   }
-  // If it's a spotify: URI
-  if (uriOrUrl.startsWith('spotify:')) {
-    const parts = uriOrUrl.split(':');
-    type = parts[1];
-    uriOrUrl = parts[2];
-  }
-  return `https://open.spotify.com/embed/${type}/${uriOrUrl}?utm_source=generator&theme=0`;
+  return `spotify:${fallbackType}:${input}`;
 }
 
 function loadSpotifyPlaylist(index) {
   spotifyIndex = index;
   const pl = SPOTIFY_PLAYLISTS[index];
-  const iframe = document.getElementById('spotify-iframe');
-  iframe.src = buildSpotifyEmbedUrl(pl.uri, 'playlist');
   document.getElementById('stream-name').textContent = pl.name;
   document.getElementById('stream-status').textContent = 'Spotify';
   // Update preset highlights
   document.querySelectorAll('.spotify-preset-btn').forEach((btn, i) => {
     btn.classList.toggle('active', i === index);
   });
+  ensureSpotifyController(() => {
+    spotifyController.loadUri(`spotify:playlist:${pl.uri}`);
+  });
 }
 
 function loadSpotifyCustomUrl(input) {
   const raw = input.trim();
   if (!raw) return;
-  const iframe = document.getElementById('spotify-iframe');
-  iframe.src = buildSpotifyEmbedUrl(raw);
+  const uri = toSpotifyUri(raw);
   document.getElementById('stream-name').textContent = 'Custom Playlist';
   document.getElementById('stream-status').textContent = 'Spotify';
-  // Deselect all presets
   document.querySelectorAll('.spotify-preset-btn').forEach(b => b.classList.remove('active'));
+  ensureSpotifyController(() => {
+    spotifyController.loadUri(uri);
+  });
   showToast('Loading Spotify playlist…');
 }
 
@@ -1505,7 +1537,11 @@ function initKeyboard() {
     switch (e.key) {
       case ' ':
         e.preventDefault();
-        if (player) player.toggle();
+        if (musicSource === 'spotify' && spotifyController) {
+          spotifyController.togglePlay();
+        } else if (player) {
+          player.toggle();
+        }
         break;
       case 'ArrowLeft':
         e.preventDefault();
@@ -1623,6 +1659,25 @@ function showToast(msg, duration = 3000) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// SHARED AUDIO GRAPH (for ambient sounds + visualizer)
+// ═══════════════════════════════════════════════════════════
+
+let sharedAudioCtx = null;
+let sharedAnalyser = null;
+
+function getSharedAudioGraph() {
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sharedAnalyser = sharedAudioCtx.createAnalyser();
+    sharedAnalyser.fftSize = 128;
+    sharedAnalyser.smoothingTimeConstant = 0.82;
+    sharedAnalyser.connect(sharedAudioCtx.destination);
+  }
+  if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+  return { ctx: sharedAudioCtx, analyser: sharedAnalyser };
+}
+
+// ═══════════════════════════════════════════════════════════
 // AMBIENT SOUNDS (HTML5 Audio — loopable audio files)
 // Place audio files in assets/ambient/ (mp3, ogg, or wav).
 // ═══════════════════════════════════════════════════════════
@@ -1654,7 +1709,8 @@ function initAmbientSounds() {
   volSlider.addEventListener('input', () => {
     const vol = parseInt(volSlider.value, 10) / 100;
     Object.values(ambientAudios).forEach(n => {
-      if (n.audio) n.audio.volume = vol;
+      if (n.gain) n.gain.gain.value = vol;
+      else if (n.audio) n.audio.volume = vol;
     });
   });
 }
@@ -1663,21 +1719,50 @@ function toggleAmbient(sound) {
   const item = document.querySelector(`.ambient-item[data-id="${sound.id}"]`);
   if (ambientAudios[sound.id]) {
     // Stop
-    ambientAudios[sound.id].audio.pause();
-    ambientAudios[sound.id].audio.currentTime = 0;
+    const entry = ambientAudios[sound.id];
+    entry.audio.pause();
+    entry.audio.currentTime = 0;
+    if (entry.source) { try { entry.source.disconnect(); } catch {} }
+    if (entry.gain)   { try { entry.gain.disconnect(); } catch {} }
     delete ambientAudios[sound.id];
     item.classList.remove('active');
   } else {
-    // Start
+    // Start — route through shared audio graph for visualizer reactivity
     const vol = parseInt(document.getElementById('ambient-volume').value, 10) / 100;
     const audio = new Audio(`assets/ambient/${sound.file}`);
     audio.loop = true;
-    audio.volume = vol;
-    audio.play().catch(() => {
-      showToast(`Could not play ${sound.name}. Add ${sound.file} to assets/ambient/`);
-    });
-    ambientAudios[sound.id] = { audio };
-    item.classList.add('active');
+    audio.crossOrigin = 'anonymous';
+
+    try {
+      const { ctx, analyser } = getSharedAudioGraph();
+      const source = ctx.createMediaElementSource(audio);
+      const gain   = ctx.createGain();
+      gain.gain.value = vol;
+      source.connect(gain);
+      gain.connect(analyser); // analyser → destination
+      audio.play().then(() => {
+        item.classList.add('active');
+      }).catch((err) => {
+        // Clean up on failure
+        try { source.disconnect(); } catch {}
+        try { gain.disconnect(); } catch {}
+        delete ambientAudios[sound.id];
+        item.classList.remove('active');
+        showToast(`Could not play ${sound.name}. Add ${sound.file} to assets/ambient/`);
+      });
+      ambientAudios[sound.id] = { audio, source, gain };
+    } catch {
+      // Fallback: plain HTML Audio if Web Audio fails
+      audio.volume = vol;
+      audio.play().then(() => {
+        item.classList.add('active');
+      }).catch(() => {
+        delete ambientAudios[sound.id];
+        item.classList.remove('active');
+        showToast(`Could not play ${sound.name}. Add ${sound.file} to assets/ambient/`);
+      });
+      ambientAudios[sound.id] = { audio };
+    }
   }
 }
 
@@ -1728,14 +1813,14 @@ function showQuote() {
 
 function initSettings() {
   // Apply theme
-  document.documentElement.dataset.theme = settings.theme;
+  applyTheme(settings.theme);
 
   // Theme buttons
   document.querySelectorAll('.theme-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === settings.theme);
     btn.addEventListener('click', () => {
       settings.theme = btn.dataset.theme;
-      document.documentElement.dataset.theme = settings.theme;
+      applyTheme(settings.theme);
       saveSettings();
       document.querySelectorAll('.theme-btn').forEach(b =>
         b.classList.toggle('active', b.dataset.theme === settings.theme)
@@ -1804,6 +1889,30 @@ function initSettings() {
       saveSettings();
     });
   }
+
+  // Auto-theme: check every minute
+  if (settings.theme === 'auto') startAutoThemeTimer();
+}
+
+/** Map 'auto' to time-based theme, otherwise use the literal theme name. */
+function applyTheme(themeSetting) {
+  let resolved = themeSetting;
+  if (themeSetting === 'auto') {
+    const h = new Date().getHours();
+    if (h >= 8 && h < 16)       resolved = 'light';   // 8 AM – 3:59 PM
+    else if (h >= 16 && h < 20)  resolved = 'evening'; // 4 PM – 7:59 PM
+    else                         resolved = 'dark';    // 8 PM – 7:59 AM
+  }
+  document.documentElement.dataset.theme = resolved;
+}
+
+let _autoThemeInterval = null;
+function startAutoThemeTimer() {
+  if (_autoThemeInterval) clearInterval(_autoThemeInterval);
+  _autoThemeInterval = setInterval(() => {
+    if (settings.theme === 'auto') applyTheme('auto');
+    else clearInterval(_autoThemeInterval);
+  }, 60_000);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1882,6 +1991,8 @@ function startVisualizer() {
   if (vizAnimId) return;
   resizeVizCanvas();
 
+  let freqBuf = null;
+
   function draw() {
     const { width, height } = vizCanvas;
     vizCtx.clearRect(0, 0, width, height);
@@ -1892,26 +2003,40 @@ function startVisualizer() {
     const barCount = vizBars.length;
     const barW = width / barCount;
 
-    // Check if any ambient sounds are playing to add reactivity
-    const hasAmbient = Object.keys(ambientAudios).length > 0;
-    const ambientBoost = hasAmbient ? 1.3 : 1.0;
+    // ── Read frequency data from shared audio graph ──
+    let hasAudioData = false;
+    if (sharedAnalyser) {
+      if (!freqBuf || freqBuf.length !== sharedAnalyser.frequencyBinCount) {
+        freqBuf = new Uint8Array(sharedAnalyser.frequencyBinCount);
+      }
+      sharedAnalyser.getByteFrequencyData(freqBuf);
+      for (let j = 0; j < freqBuf.length; j++) {
+        if (freqBuf[j] > 2) { hasAudioData = true; break; }
+      }
+    }
 
     for (let i = 0; i < barCount; i++) {
       const b = vizBars[i];
-      // Multi-wave synthesis for organic movement
-      const w1 = Math.sin(time * b.speed + b.phase);
-      const w2 = Math.sin(time * 0.7 + i * 0.15);
-      const w3 = Math.sin(time * 0.3 + i * 0.05);
-      const w4 = Math.sin(time * 1.5 + i * 0.3) * 0.3;
-      const w5 = Math.sin(time * 2.1 + b.phase * 2) * 0.15;
+      let targetH;
 
-      // Pulse effect that ripples across bars
-      const pulse = Math.sin(time * 0.8 - i * 0.08) * 0.2 + 0.8;
+      if (hasAudioData && freqBuf) {
+        // ── Audio-reactive mode (driven by ambient sounds) ──
+        const binIdx = Math.floor(i * freqBuf.length / barCount);
+        const val = freqBuf[binIdx] / 255;
+        targetH = val * height * 0.85;
+      } else {
+        // ── Idle ambient animation (no audio playing) ──
+        const w1 = Math.sin(time * b.speed + b.phase);
+        const w2 = Math.sin(time * 0.7 + i * 0.15);
+        const w3 = Math.sin(time * 0.3 + i * 0.05);
+        const pulse = Math.sin(time * 0.8 - i * 0.08) * 0.2 + 0.8;
+        targetH = ((w1 * 0.4 + 0.5) * (w2 * 0.3 + 0.7) * (w3 * 0.2 + 0.8))
+          * b.amplitude * pulse * height * 0.35;
+      }
 
-      const raw = ((w1 * 0.4 + 0.5) * (w2 * 0.3 + 0.7) * (w3 * 0.2 + 0.8) + w4 + w5) * b.amplitude * pulse * ambientBoost;
-      // Smooth interpolation for fluid movement
-      b.current += (raw - b.current) * 0.12;
-      const h = Math.max(4, b.current * height * 0.55);
+      // Smooth interpolation (faster response for real audio)
+      b.current += (targetH - b.current) * (hasAudioData ? 0.35 : 0.1);
+      const h = Math.max(4, b.current);
 
       const x = i * barW;
       const y = height - h;
@@ -1936,7 +2061,7 @@ function startVisualizer() {
       vizCtx.fill();
 
       // Glow dot at top
-      vizCtx.fillStyle = `rgba(${rgb},${0.4 + b.current * 0.4})`;
+      vizCtx.fillStyle = `rgba(${rgb},${0.4 + (h / height) * 0.4})`;
       vizCtx.fillRect(bx, y, bw, 2);
     }
     vizAnimId = requestAnimationFrame(draw);

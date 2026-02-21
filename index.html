@@ -209,15 +209,7 @@
 
 <!-- Spotify embed player (floating, toggled when Spotify is the active source) -->
 <div id="spotify-wrapper" class="hidden">
-  <iframe id="spotify-iframe"
-    style="border-radius:12px"
-    src=""
-    width="100%" height="352"
-    frameBorder="0"
-    allowfullscreen=""
-    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-    loading="lazy">
-  </iframe>
+  <div id="spotify-embed"></div>
 </div>
 
 <!-- Modal dark overlay (shown with foreground video) -->
@@ -573,6 +565,7 @@
 
       <p class="section-label" style="margin-top:16px">Appearance</p>
       <div class="theme-selector" role="group" aria-label="Theme">
+        <button class="theme-btn" data-theme="auto">Auto</button>
         <button class="theme-btn active" data-theme="dark">Dark</button>
         <button class="theme-btn" data-theme="light">Light</button>
         <button class="theme-btn" data-theme="evening">Evening</button>
@@ -751,6 +744,7 @@
     </svg>
     <span class="loader-text">focusfi</span>
   </div>
+  <button id="loader-enter" class="loader-enter">click to enter</button>
 </div>
 
 </body>
