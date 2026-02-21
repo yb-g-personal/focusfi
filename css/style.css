@@ -64,7 +64,7 @@
 }
 
 /* ── Reset ───────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; font-family: inherit; }
 
 html, body {
   height: 100%;
@@ -75,8 +75,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-button { font-family: var(--font); cursor: pointer; }
-input, textarea { font-family: var(--font); }
+button { cursor: pointer; }
 
 /* ── SVG Icon Helper ─────────────────────────────────────── */
 .icon {
