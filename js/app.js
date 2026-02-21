@@ -62,7 +62,7 @@ const MAX_AD_DURATION_SECONDS = 120;
 let adCheckInterval = null;
 
 // ── Settings state ─────────────────────────────────────────
-let settings = { theme: 'dark', clockFormat: 'system', scene: 'gradient' };
+let settings = { theme: 'dark', clockFormat: 'system', scene: 'gradient', showSeconds: false, showDate: true, notifSounds: true, autoResume: false, showQuoteOnStart: false };
 
 function loadSettings() {
   try {
@@ -124,6 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Restore last background mode
   setBackground(settings.scene, true);
+
+  // Show quote on start if enabled
+  if (settings.showQuoteOnStart) {
+    const quotePanel = document.getElementById('quote-panel');
+    if (quotePanel) quotePanel.classList.remove('hidden');
+  }
 });
 
 // ── YouTube API ready ──────────────────────────────────────
@@ -143,6 +149,10 @@ window.addEventListener('yt-ready', () => {
     setStreamStatus('Live');
     updatePlayBtn(player.isPlaying());
     startAdDetection();
+    // Ensure the stream starts playing (autoplay may be blocked)
+    if (!player.isPlaying()) {
+      player.play();
+    }
   });
 
   player.onStateChange((e) => {
@@ -286,6 +296,9 @@ function initPlayerControls() {
   // view / foreground toggle
   document.getElementById('btn-view').addEventListener('click', toggleForeground);
 
+  // clicking stream name/icon opens foreground
+  document.querySelector('.player-stream-info').addEventListener('click', toggleForeground);
+
   // close modal overlay on backdrop click
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeForeground();
@@ -372,7 +385,7 @@ function initTimer() {
         beep(880, 0.25, 0.6);
         beep(660, 0.2, 0.6, 0.35);
       } else {
-        if (player) player.play();
+        if (player && settings.autoResume) player.play();
         showToast('Break over — back to work');
         beep(528, 0.25, 0.5);
       }
@@ -456,10 +469,21 @@ function updateBigClockPomo(secs) {
   if (el.classList.contains('hidden')) return;
   document.getElementById('big-clock-pomo-time').textContent = timer.format(secs);
   const endDate = new Date(Date.now() + secs * 1000);
-  const opts = { hour: '2-digit', minute: '2-digit' };
-  if (settings.clockFormat === '12h') opts.hour12 = true;
-  else if (settings.clockFormat === '24h') opts.hour12 = false;
-  const endStr = endDate.toLocaleTimeString([], opts);
+  let endHours = endDate.getHours();
+  const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+
+  const use12 = settings.clockFormat === '12h' ||
+    (settings.clockFormat === 'system' &&
+      /[AP]M/i.test(new Date().toLocaleTimeString([], { hour: 'numeric' })));
+
+  let endStr;
+  if (use12) {
+    const ampm = endHours >= 12 ? 'PM' : 'AM';
+    endHours = endHours % 12 || 12;
+    endStr = `${endHours}:${endMinutes} ${ampm}`;
+  } else {
+    endStr = `${String(endHours).padStart(2, '0')}:${endMinutes}`;
+  }
   document.getElementById('big-clock-pomo-end').textContent = `ends at ${endStr}`;
 }
 
@@ -471,6 +495,7 @@ function updateBigClockPomo(secs) {
  * @param {number} [delay]   seconds before starting (default 0)
  */
 function beep(freq, vol, duration, delay = 0) {
+  if (!settings.notifSounds) return;
   try {
     const ctx  = new (window.AudioContext || window.webkitAudioContext)();
     const osc  = ctx.createOscillator();
@@ -991,8 +1016,8 @@ function parseYouTubeId(input) {
 // ═══════════════════════════════════════════════════════════
 
 function initPanels() {
-  // Header toggle buttons
-  document.querySelectorAll('.tool-toggle').forEach((btn) => {
+  // Header toggle buttons (Settings button)
+  document.querySelectorAll('.header-right > .tool-toggle[data-panel]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const panel  = document.getElementById(btn.dataset.panel);
       const isOpen = !panel.classList.contains('hidden');
@@ -1001,12 +1026,48 @@ function initPanels() {
     });
   });
 
+  // Tools dropdown trigger
+  const toolsTrigger = document.getElementById('tools-trigger');
+  const toolsMenu = document.getElementById('tools-menu');
+  if (toolsTrigger && toolsMenu) {
+    toolsTrigger.addEventListener('click', () => {
+      const isOpen = !toolsMenu.classList.contains('hidden');
+      toolsMenu.classList.toggle('hidden', isOpen);
+      toolsTrigger.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.tools-dropdown')) {
+        toolsMenu.classList.add('hidden');
+        toolsTrigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Tools menu items
+    document.querySelectorAll('.tools-menu-item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const panel  = document.getElementById(btn.dataset.panel);
+        const isOpen = !panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', isOpen);
+        btn.classList.toggle('active', !isOpen);
+        // Close the dropdown after selection
+        toolsMenu.classList.add('hidden');
+        toolsTrigger.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
   // Close buttons inside panels
   document.querySelectorAll('.close-panel').forEach((btn) => {
     btn.addEventListener('click', () => {
       const panel  = document.getElementById(btn.dataset.panel);
       panel.classList.add('hidden');
-      const toggle = document.querySelector(`.tool-toggle[data-panel="${btn.dataset.panel}"]`);
+      // Update the tools menu item state
+      const menuItem = document.querySelector(`.tools-menu-item[data-panel="${btn.dataset.panel}"]`);
+      if (menuItem) menuItem.classList.remove('active');
+      // Also update header toggle if it's settings
+      const toggle = document.querySelector(`.header-right > .tool-toggle[data-panel="${btn.dataset.panel}"]`);
       if (toggle) toggle.classList.remove('active');
     });
   });
@@ -1053,10 +1114,21 @@ function initKeyboard() {
 function initClock() {
   const el = document.getElementById('clock');
   function tick() {
-    const opts = { hour: '2-digit', minute: '2-digit' };
-    if (settings.clockFormat === '12h') opts.hour12 = true;
-    else if (settings.clockFormat === '24h') opts.hour12 = false;
-    el.textContent = new Date().toLocaleTimeString([], opts);
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+
+    const use12 = settings.clockFormat === '12h' ||
+      (settings.clockFormat === 'system' &&
+        /[AP]M/i.test(now.toLocaleTimeString([], { hour: 'numeric' })));
+
+    if (use12) {
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      el.textContent = `${hours}:${minutes} ${ampm}`;
+    } else {
+      el.textContent = `${String(hours).padStart(2, '0')}:${minutes}`;
+    }
   }
   tick();
   setInterval(tick, 1000);
@@ -1088,12 +1160,20 @@ function initBigClock() {
     document.getElementById('big-clock-seconds').textContent = String(seconds).padStart(2, '0');
     document.getElementById('big-clock-ampm').textContent    = ampm;
 
-    document.getElementById('big-clock-date').textContent = now.toLocaleDateString([], {
-      weekday: 'long',
-      year:    'numeric',
-      month:   'long',
-      day:     'numeric',
-    });
+    // Show/hide seconds based on setting
+    document.getElementById('big-clock-seconds').classList.toggle('hidden', !settings.showSeconds);
+
+    // Show/hide date based on setting
+    const dateEl = document.getElementById('big-clock-date');
+    dateEl.classList.toggle('hidden', !settings.showDate);
+    if (settings.showDate) {
+      dateEl.textContent = now.toLocaleDateString([], {
+        weekday: 'long',
+        year:    'numeric',
+        month:   'long',
+        day:     'numeric',
+      });
+    }
   }
   tick();
   setInterval(tick, 1000);
@@ -1305,6 +1385,56 @@ function initSettings() {
       );
     });
   });
+
+  // Show seconds toggle
+  const showSecondsCb = document.getElementById('setting-show-seconds');
+  if (showSecondsCb) {
+    showSecondsCb.checked = settings.showSeconds;
+    showSecondsCb.addEventListener('change', () => {
+      settings.showSeconds = showSecondsCb.checked;
+      saveSettings();
+    });
+  }
+
+  // Show date toggle
+  const showDateCb = document.getElementById('setting-show-date');
+  if (showDateCb) {
+    showDateCb.checked = settings.showDate;
+    showDateCb.addEventListener('change', () => {
+      settings.showDate = showDateCb.checked;
+      saveSettings();
+    });
+  }
+
+  // Notification sounds toggle
+  const notifSoundsCb = document.getElementById('setting-notif-sounds');
+  if (notifSoundsCb) {
+    notifSoundsCb.checked = settings.notifSounds;
+    notifSoundsCb.addEventListener('change', () => {
+      settings.notifSounds = notifSoundsCb.checked;
+      saveSettings();
+    });
+  }
+
+  // Auto-resume toggle
+  const autoResumeCb = document.getElementById('setting-auto-resume');
+  if (autoResumeCb) {
+    autoResumeCb.checked = settings.autoResume;
+    autoResumeCb.addEventListener('change', () => {
+      settings.autoResume = autoResumeCb.checked;
+      saveSettings();
+    });
+  }
+
+  // Show quote on start toggle
+  const showQuoteCb = document.getElementById('setting-show-quote');
+  if (showQuoteCb) {
+    showQuoteCb.checked = settings.showQuoteOnStart;
+    showQuoteCb.addEventListener('change', () => {
+      settings.showQuoteOnStart = showQuoteCb.checked;
+      saveSettings();
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
