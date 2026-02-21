@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusFi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SVG SPRITE  (inline, display:none)
+     ═══════════════════════════════════════════════ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+
+  <symbol id="ic-play" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 3 19 12 5 21 5 3"/>
+  </symbol>
+
+  <symbol id="ic-pause" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="4" width="4" height="16"/>
+    <rect x="14" y="4" width="4" height="16"/>
+  </symbol>
+
+  <symbol id="ic-skip-back" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="19 20 9 12 19 4 19 20"/>
+    <rect x="5" y="4" width="3" height="16"/>
+  </symbol>
+
+  <symbol id="ic-skip-fwd" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 4 15 12 5 20 5 4"/>
+    <rect x="16" y="4" width="3" height="16"/>
+  </symbol>
+
+  <symbol id="ic-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+  </symbol>
+
+  <symbol id="ic-volume-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+    <line x1="23" y1="9" x2="17" y2="15"/>
+    <line x1="17" y1="9" x2="23" y2="15"/>
+  </symbol>
+
+  <symbol id="ic-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2"/>
+    <line x1="8" y1="21" x2="16" y2="21"/>
+    <line x1="12" y1="17" x2="12" y2="21"/>
+  </symbol>
+
+  <symbol id="ic-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </symbol>
+
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </symbol>
+
+  <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <polyline points="12 6 12 12 16 14"/>
+  </symbol>
+
+  <symbol id="ic-tasks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="9" y1="6" x2="20" y2="6"/>
+    <line x1="9" y1="12" x2="20" y2="12"/>
+    <line x1="9" y1="18" x2="20" y2="18"/>
+    <polyline points="3 6 4 7 6 5"/>
+    <polyline points="3 12 4 13 6 11"/>
+    <polyline points="3 18 4 19 6 17"/>
+  </symbol>
+
+  <symbol id="ic-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </symbol>
+
+  <symbol id="ic-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </symbol>
+
+  <symbol id="ic-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
+  </symbol>
+
+  <symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </symbol>
+
+  <symbol id="ic-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 18V5l12-2v13"/>
+    <circle cx="6" cy="18" r="3"/>
+    <circle cx="18" cy="16" r="3"/>
+  </symbol>
+
+</svg>
+
+<!-- ═══════════════════════════════════════════════
+     BACKGROUND LAYERS
+     ═══════════════════════════════════════════════ -->
+<div id="background">
+  <div id="bg-gradient" class="bg-layer active"></div>
+  <div id="bg-gif" class="bg-layer">
+    <img id="gif-img" src="" alt="" draggable="false" />
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     YOUTUBE PLAYER WRAPPER
+     Classes applied by JS:
+       .mode-audio  → 1 px off-screen, audio only
+       .mode-bg     → fullscreen background
+       .mode-modal  → centred foreground modal
+     ═══════════════════════════════════════════════ -->
+<div id="yt-wrapper" class="mode-audio">
+  <div id="yt-player"></div>
+  <!-- transparent cover that blocks accidental YouTube UI clicks -->
+  <div id="yt-cover"></div>
+</div>
+
+<!-- Modal dark overlay (shown with foreground video) -->
+<div id="modal-overlay" class="hidden">
+  <button id="modal-close" aria-label="Close video">
+    <svg class="icon"><use href="#ic-x"/></svg>
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════════════ -->
+<header id="header">
+
+  <div class="header-left">
+    <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <span class="logo-text">focusfi</span>
+  </div>
+
+  <div class="header-center">
+    <div class="bg-selector" role="group" aria-label="Background mode">
+      <button class="bg-btn active" data-bg="gradient">Gradient</button>
+      <button class="bg-btn" data-bg="gif">GIF</button>
+      <button class="bg-btn" data-bg="stream">Stream</button>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <span id="clock" class="clock" aria-live="off"></span>
+    <button class="tool-toggle" data-panel="timer-panel" aria-label="Toggle timer">
+      <svg class="icon"><use href="#ic-clock"/></svg>
+      <span class="tl">Timer</span>
+    </button>
+    <button class="tool-toggle" data-panel="tasks-panel" aria-label="Toggle tasks">
+      <svg class="icon"><use href="#ic-tasks"/></svg>
+      <span class="tl">Tasks</span>
+    </button>
+    <button class="tool-toggle" data-panel="notes-panel" aria-label="Toggle notes">
+      <svg class="icon"><use href="#ic-edit"/></svg>
+      <span class="tl">Notes</span>
+    </button>
+  </div>
+
+</header>
+
+<!-- ═══════════════════════════════════════════════
+     TOOL PANELS  (right side)
+     ═══════════════════════════════════════════════ -->
+<aside id="tools-container" aria-label="Study tools">
+
+  <!-- ── Timer ── -->
+  <div id="timer-panel" class="panel hidden" role="region" aria-label="Focus Timer">
+    <div class="panel-header">
+      <h3>Focus Timer</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Focus Timer"
+          data-tip="Pomodoro timer: work in timed sessions separated by short breaks. Music pauses automatically when your session ends.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="timer-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="mode-tabs" role="tablist" aria-label="Timer mode">
+        <button class="mode-tab active" data-mode="focus" role="tab" aria-selected="true">Focus</button>
+        <button class="mode-tab" data-mode="short" role="tab" aria-selected="false">Short Break</button>
+        <button class="mode-tab" data-mode="long" role="tab" aria-selected="false">Long Break</button>
+      </div>
+      <div class="timer-display" aria-live="polite">
+        <span id="timer-time">25:00</span>
+      </div>
+      <div class="timer-meta">
+        <span id="session-dots" aria-hidden="true">○○○○</span>
+        <span id="session-label">Session 1 of 4</span>
+      </div>
+      <div class="timer-controls">
+        <button id="btn-timer-start" class="btn-primary">Start</button>
+        <button id="btn-timer-reset" class="btn-secondary">Reset</button>
+      </div>
+      <div class="timer-settings">
+        <label>Focus <input type="number" id="inp-focus" value="25" min="1" max="99"> min</label>
+        <label>Break <input type="number" id="inp-break" value="5" min="1" max="30"> min</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tasks ── -->
+  <div id="tasks-panel" class="panel hidden" role="region" aria-label="Tasks">
+    <div class="panel-header">
+      <h3>Tasks</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Tasks"
+          data-tip="Keep a lightweight to-do list for your session. Tasks are saved automatically in your browser.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="tasks-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <p id="tasks-progress" class="tasks-progress">No tasks yet</p>
+      <div id="task-list" role="list"></div>
+      <div class="task-add-row">
+        <input type="text" id="new-task-input" placeholder="Add a task…" maxlength="120" autocomplete="off" aria-label="New task" />
+        <button id="btn-add-task" aria-label="Add task">
+          <svg class="icon icon-sm"><use href="#ic-plus"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Notes ── -->
+  <div id="notes-panel" class="panel hidden" role="region" aria-label="Notes">
+    <div class="panel-header">
+      <h3>Notes</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Notes"
+          data-tip="Quick scratch pad for formulas, vocabulary, or ideas. Auto-saved in your browser between sessions.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="notes-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <textarea id="notes-area" placeholder="Start typing…" spellcheck="true" aria-label="Notes"></textarea>
+      <div class="notes-footer">
+        <span id="notes-count">0 words</span>
+        <button id="btn-notes-clear" class="btn-ghost">Clear</button>
+      </div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ═══════════════════════════════════════════════
+     STREAM SETTINGS DIALOG
+     ═══════════════════════════════════════════════ -->
+<div id="stream-dialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-label="Stream settings">
+  <div class="dialog">
+    <div class="dialog-header">
+      <h3>Stream Settings</h3>
+      <button id="btn-dialog-close" aria-label="Close dialog">
+        <svg class="icon"><use href="#ic-x"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <p class="section-label">Preset streams</p>
+      <div id="stream-presets"></div>
+
+      <p class="section-label" style="margin-top:20px">Custom stream</p>
+      <p class="dialog-hint">Paste a YouTube URL or video ID to play your own stream with the same controls:</p>
+      <div class="input-row">
+        <input type="text" id="custom-url-input"
+          placeholder="https://www.youtube.com/watch?v=…"
+          autocomplete="off" aria-label="YouTube URL" />
+        <button id="btn-load-stream" class="btn-primary">Load</button>
+      </div>
+      <p id="stream-error" class="error-msg hidden" role="alert"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     PLAYER BAR  (bottom)
+     ═══════════════════════════════════════════════ -->
+<div id="player-bar" role="region" aria-label="Player controls">
+
+  <div class="player-stream-info">
+    <svg class="icon player-icon"><use href="#ic-music"/></svg>
+    <div class="stream-meta">
+      <span id="stream-name">Lofi Girl</span>
+      <span id="stream-status">Loading…</span>
+    </div>
+  </div>
+
+  <div class="player-center">
+    <button id="btn-prev" aria-label="Previous stream" title="Previous stream (←)">
+      <svg class="icon"><use href="#ic-skip-back"/></svg>
+    </button>
+    <button id="btn-play-pause" class="btn-play" aria-label="Play / Pause" title="Play / Pause (Space)">
+      <svg class="icon"><use href="#ic-play"/></svg>
+    </button>
+    <button id="btn-next" aria-label="Next stream" title="Next stream (→)">
+      <svg class="icon"><use href="#ic-skip-fwd"/></svg>
+    </button>
+  </div>
+
+  <div class="player-right">
+    <button id="btn-mute" aria-label="Unmute" title="Mute / Unmute (M)">
+      <svg class="icon"><use href="#ic-volume-off"/></svg>
+    </button>
+    <input type="range" id="volume-slider" min="0" max="100" value="50"
+      aria-label="Volume" title="Volume" />
+    <button id="btn-view" aria-label="Watch in foreground" title="Watch in foreground (F)">
+      <svg class="icon"><use href="#ic-monitor"/></svg>
+    </button>
+    <button id="btn-stream-settings" aria-label="Stream settings" title="Stream settings">
+      <svg class="icon"><use href="#ic-settings"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCRIPTS
+     onYouTubeIframeAPIReady must be global and set
+     before the YT API script fires its callback.
+     ═══════════════════════════════════════════════ -->
+<script>
+  window.onYouTubeIframeAPIReady = function () {
+    window.dispatchEvent(new CustomEvent('yt-ready'));
+  };
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>
