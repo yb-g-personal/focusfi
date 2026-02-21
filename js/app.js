@@ -1078,7 +1078,7 @@ function initBigClock() {
       hours = hours % 12 || 12;
     }
 
-    document.getElementById('big-clock-hours').textContent   = String(hours).padStart(2, '0');
+    document.getElementById('big-clock-hours').textContent   = use12 ? String(hours) : String(hours).padStart(2, '0');
     document.getElementById('big-clock-minutes').textContent = String(minutes).padStart(2, '0');
     document.getElementById('big-clock-seconds').textContent = String(seconds).padStart(2, '0');
     document.getElementById('big-clock-ampm').textContent    = ampm;
@@ -1377,6 +1377,8 @@ function stopVisualizer() {
 
 function hexToRgb(hex) {
   hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  if (hex.length !== 6) return '124,106,245';
   return `${parseInt(hex.substring(0,2),16)},${parseInt(hex.substring(2,4),16)},${parseInt(hex.substring(4,6),16)}`;
 }
 
