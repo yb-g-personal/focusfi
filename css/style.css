@@ -77,6 +77,12 @@ html, body {
 
 button { cursor: pointer; }
 
+/* prevent user from selecting brand name */
+.logo-text,
+.loader-text {
+  user-select: none;
+}
+
 /* ═══════════════════════════════════════════════════════════
    LOADING SCREEN
    ═══════════════════════════════════════════════════════════ */
@@ -705,7 +711,7 @@ button { cursor: pointer; }
   right: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   z-index: 90;
   max-height: calc(100vh - var(--header-h) - var(--player-h) - 24px);
   overflow-y: auto;
@@ -723,11 +729,18 @@ button { cursor: pointer; }
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease, max-height 0.3s ease, margin 0.3s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease, max-height 0.3s ease, margin-top 0.3s ease;
   opacity: 1;
   transform: translateX(0);
   visibility: visible;
   max-height: 800px;
+  margin-top: 0;
+}
+.panel + .panel:not(.hidden) {
+  margin-top: 10px;
+}
+.panel.hidden + .panel:not(.hidden) {
+  margin-top: 0;
 }
 .panel.hidden {
   opacity: 0;
@@ -735,7 +748,7 @@ button { cursor: pointer; }
   visibility: hidden;
   pointer-events: none;
   max-height: 0;
-  margin: 0;
+  margin-top: 0;
   border-width: 0;
   overflow: hidden;
 }
@@ -1425,25 +1438,27 @@ button { cursor: pointer; }
 @keyframes blink {
   50% { opacity: 0.15; }
 }
-.big-clock-ampm {
-  font-size: min(3.5vw, 40px);
-  font-weight: 500;
-  color: var(--accent);
-  margin-left: 0.35em;
-  vertical-align: super;
-  letter-spacing: 0.05em;
-}
 .big-clock-seconds {
-  font-size: min(2.5vw, 28px);
+  font-size: min(2vw, 24px);
   font-weight: 400;
   color: var(--text-muted);
-  letter-spacing: 2px;
-  margin-top: -0.2em;
+  letter-spacing: 1px;
+  vertical-align: super;
+  margin-left: 0.1em;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
 .big-clock-seconds.hidden {
   opacity: 0;
   pointer-events: none;
+}
+.big-clock-ampm {
+  font-size: min(3.5vw, 40px);
+  font-weight: 500;
+  color: var(--accent);
+  margin-left: 0.25em;
+  vertical-align: super;
+  letter-spacing: 0.05em;
 }
 .big-clock-date {
   font-size: min(1.8vw, 20px);
@@ -2077,8 +2092,10 @@ button { cursor: pointer; }
 }
 #spotify-wrapper.hidden {
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
+  position: fixed;
+  left: -9999px;
+  bottom: -9999px;
 }
 
 /* Spotify foreground modal (centered like YouTube modal) */
@@ -2294,67 +2311,10 @@ button { cursor: pointer; }
   #tools-container { right: 8px; }
   .panel { width: calc(100vw - 24px); }
   .big-clock-time { font-size: 20vw; }
+  .big-clock-seconds { font-size: 4vw; }
   .big-clock-date { font-size: 3.5vw; }
   .big-clock-ampm { font-size: 5vw; }
   .breathing-circle { width: 100px; height: 100px; }
   .breathing-label { font-size: 13px; }
   #btn-view { display: none; }
-}
-
-/* mobile landscape */
-@media (max-height: 500px) and (orientation: landscape) {
-  :root {
-    --header-h: 40px;
-    --player-h: 44px;
-  }
-  html, body {
-    overflow-y: auto;
-  }
-  #header {
-    padding: 0 10px;
-    gap: 6px;
-  }
-  .logo-svg { width: 16px; height: 16px; }
-  .logo-text { font-size: 13px; }
-  .tool-toggle { padding: 4px 6px; font-size: 11px; }
-  .tool-toggle .tl { display: none; }
-  .clock { font-size: 11px; }
-  #player-bar {
-    padding: 0 10px;
-    gap: 6px;
-  }
-  .player-center button { width: 28px; height: 28px; }
-  .btn-play { width: 32px !important; height: 32px !important; }
-  .player-icon { width: 14px; height: 14px; }
-  #stream-name { font-size: 12px; }
-  #stream-status { font-size: 10px; }
-  #volume-slider { width: 50px; }
-  #tools-container {
-    max-height: calc(100vh - var(--header-h) - var(--player-h) - 8px);
-    right: 6px;
-  }
-  .panel { width: min(var(--panel-w), calc(100vw - 16px)); }
-  .panel-body { padding: 8px 10px; max-height: calc(100vh - var(--header-h) - var(--player-h) - 80px); overflow-y: auto; }
-  .big-clock {
-    top: calc(var(--header-h) + 4px);
-  }
-  .big-clock-time { font-size: min(18vh, 15vw); }
-  .big-clock-seconds { font-size: min(4vh, 3vw); }
-  .big-clock-date { font-size: min(2.5vh, 2vw); }
-  .big-clock-ampm { font-size: min(4vh, 4vw); }
-  .timer-display { font-size: 36px; }
-  .breathing-circle { width: 70px; height: 70px; }
-  .breathing-label { font-size: 11px; }
-  /* Spotify wrapper smaller */
-  #spotify-wrapper {
-    width: min(300px, 80vw);
-  }
-  .alarm-content {
-    padding: 24px 32px;
-  }
-  .alarm-ring { width: 48px; height: 48px; }
-  .alarm-icon { width: 28px; height: 28px; }
-  .alarm-message { font-size: 16px; }
-  .btn-alarm-stop { padding: 10px 28px; font-size: 14px; }
-  .dialog { width: min(400px, 92vw); }
 }

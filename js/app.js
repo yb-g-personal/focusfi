@@ -2329,16 +2329,22 @@ function updateRunningTools() {
 
 function initCredits() {
   const btn = document.getElementById('btn-credits');
-  const panel = document.getElementById('credits-panel');
-  if (btn && panel) {
-    btn.addEventListener('click', () => {
-      panel.classList.toggle('hidden');
-    });
-    // Wire up close button inside credits panel
-    panel.querySelectorAll('.close-panel').forEach(closeBtn => {
-      closeBtn.addEventListener('click', () => panel.classList.add('hidden'));
-    });
+  const dialog = document.getElementById('credits-dialog');
+  const closeBtn = document.getElementById('btn-credits-close');
+  if (!btn || !dialog) return;
+
+  btn.addEventListener('click', () => {
+    dialog.classList.remove('hidden');
+  });
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => dialog.classList.add('hidden'));
   }
+
+  // Close on backdrop click
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.classList.add('hidden');
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
