@@ -10,7 +10,12 @@
  *   - Stream settings dialog
  *   - Panel toggles
  *   - Keyboard shortcuts
- *   - Clock display
+ *   - Clock display + Big clock
+ *   - Stopwatch
+ *   - Countdown timer
+ *   - Breathing exercise
+ *   - Equalizer
+ *   - Ad detection / skip
  *
  * The player wrapper (#yt-wrapper) uses CSS classes to switch modes:
  *   .mode-audio  → tiny / invisible, audio only
@@ -25,9 +30,12 @@ import { Notes          } from './notes.js';
 
 // ── Preset streams ─────────────────────────────────────────
 const PRESETS = [
-  { name: 'Lofi Girl',           videoId: 'jfKfPfyJRdk', desc: 'lofi hip hop radio' },
-  { name: 'Lofi Girl — Synthwave', videoId: '4xDzrJKXOOY', desc: 'synthwave radio'    },
-  { name: 'Chillhop Music',      videoId: '5yx6BWlEVcY', desc: 'chillhop radio'     },
+  { name: 'Lofi Girl',              videoId: 'jfKfPfyJRdk', desc: 'lofi hip hop radio'    },
+  { name: 'Lofi Girl — Synthwave',  videoId: '4xDzrJKXOOY', desc: 'synthwave radio'       },
+  { name: 'Chillhop Music',         videoId: '5yx6BWlEVcY', desc: 'chillhop radio'        },
+  { name: 'Lofi Girl — Sleep',      videoId: 'rUxyKA_-grg', desc: 'sleepy lofi radio'     },
+  { name: 'Lofi Girl — Jazz',       videoId: 'HuFYqnbVbzY', desc: 'lofi jazz radio'       },
+  { name: 'Lofi Girl — Ambient',    videoId: 'S_MOd40zlYU', desc: 'ambient lofi radio'    },
 ];
 
 // ── Application state ──────────────────────────────────────
@@ -42,6 +50,15 @@ let gifIndex         = 0;
 /** @type {PomodoroTimer} */ let timer;
 /** @type {TaskList}      */ let taskList;
 /** @type {Notes}         */ let notes;
+
+// Stopwatch state
+let swRunning = false, swElapsed = 0, swStart = 0, swInterval = null, swLaps = [];
+// Countdown state
+let cdRunning = false, cdTotal = 300, cdLeft = 300, cdInterval = null;
+// Breathing state
+let brInterval = null, brPhase = -1;
+// Ad detection
+let adCheckInterval = null;
 
 // Load persisted custom stream
 (function loadCustomStream() {
@@ -71,6 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initPanels();
   initKeyboard();
   initClock();
+  initBigClock();
+  initStopwatch();
+  initCountdown();
+  initBreathing();
+  initEqualizer();
+  initSkipAd();
   loadGifs();
 
   // Restore last background mode
@@ -94,6 +117,7 @@ window.addEventListener('yt-ready', () => {
   player.onReady(() => {
     setStreamStatus('Live');
     updatePlayBtn(player.isPlaying());
+    startAdDetection();
   });
 
   player.onStateChange((e) => {
@@ -132,6 +156,14 @@ function setBackground(mode, silent = false) {
   // gradient / gif visibility
   document.getElementById('bg-gradient').classList.toggle('active', mode === 'gradient');
   document.getElementById('bg-gif').classList.toggle('active', mode === 'gif');
+
+  // Big clock visibility
+  const bigClock = document.getElementById('big-clock');
+  bigClock.classList.toggle('hidden', mode !== 'gradient');
+
+  // Fade out header clock when big clock is visible
+  const headerClock = document.getElementById('clock');
+  headerClock.classList.toggle('fade-out', mode === 'gradient');
 
   // stream background
   if (mode === 'stream') {
@@ -296,6 +328,8 @@ function initTimer() {
       if (mode === 'focus') {
         document.title = `${timer.format(secs)} — FocusFi`;
       }
+      // Update big clock Pomodoro overlay
+      updateBigClockPomo(secs);
     },
     onEnd: (mode) => {
       if (mode === 'focus') {
@@ -310,6 +344,7 @@ function initTimer() {
       }
       updateSessionMeta();
       document.getElementById('btn-timer-start').textContent = 'Start';
+      hideBigClockPomo();
     },
     onModeChange: (mode) => {
       syncModeTabUI(mode);
@@ -318,6 +353,7 @@ function initTimer() {
         timer.format(timer.timeLeft);
       document.getElementById('btn-timer-start').textContent = 'Start';
       document.title = 'FocusFi';
+      hideBigClockPomo();
     },
   });
 
@@ -332,12 +368,18 @@ function initTimer() {
   document.getElementById('btn-timer-start').addEventListener('click', () => {
     const running = timer.toggle();
     document.getElementById('btn-timer-start').textContent = running ? 'Pause' : 'Start';
+    if (running) {
+      showBigClockPomo();
+    } else {
+      // still show it while paused if time remains
+    }
   });
 
   // Reset
   document.getElementById('btn-timer-reset').addEventListener('click', () => {
     timer.reset();
     document.getElementById('btn-timer-start').textContent = 'Start';
+    hideBigClockPomo();
   });
 
   // Duration inputs
@@ -368,12 +410,25 @@ function updateSessionMeta() {
     `Session ${timer.sessionNumber} of 4`;
 }
 
+// ── Big clock Pomodoro integration ────────────────────────
+function showBigClockPomo() {
+  document.getElementById('big-clock-pomo').classList.remove('hidden');
+}
+function hideBigClockPomo() {
+  document.getElementById('big-clock-pomo').classList.add('hidden');
+}
+function updateBigClockPomo(secs) {
+  const el = document.getElementById('big-clock-pomo');
+  if (el.classList.contains('hidden')) return;
+  document.getElementById('big-clock-pomo-time').textContent = timer.format(secs);
+  // Calculate end time
+  const endDate = new Date(Date.now() + secs * 1000);
+  const endStr = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('big-clock-pomo-end').textContent = `ends at ${endStr}`;
+}
+
 /**
  * Tiny Web Audio beep — no audio files needed.
- * @param {number} freq      Hz
- * @param {number} vol       0–1 gain
- * @param {number} duration  seconds
- * @param {number} [delay]   seconds before starting (default 0)
  */
 function beep(freq, vol, duration, delay = 0) {
   try {
@@ -481,6 +536,309 @@ function updateWordCount(text) {
   const chars = text.length;
   document.getElementById('notes-count').textContent =
     `${words} word${words !== 1 ? 's' : ''} · ${chars} char${chars !== 1 ? 's' : ''}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// STOPWATCH
+// ═══════════════════════════════════════════════════════════
+
+function initStopwatch() {
+  const display = document.getElementById('stopwatch-time');
+  const startBtn = document.getElementById('btn-stopwatch-start');
+  const resetBtn = document.getElementById('btn-stopwatch-reset');
+  const lapBtn = document.getElementById('btn-stopwatch-lap');
+
+  startBtn.addEventListener('click', () => {
+    if (swRunning) {
+      // Pause
+      clearInterval(swInterval);
+      swElapsed += Date.now() - swStart;
+      swRunning = false;
+      startBtn.textContent = 'Start';
+      lapBtn.disabled = true;
+    } else {
+      // Start
+      swStart = Date.now();
+      swRunning = true;
+      startBtn.textContent = 'Pause';
+      lapBtn.disabled = false;
+      swInterval = setInterval(() => {
+        const total = swElapsed + (Date.now() - swStart);
+        display.textContent = formatMs(total);
+      }, 50);
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    clearInterval(swInterval);
+    swRunning = false;
+    swElapsed = 0;
+    swLaps = [];
+    display.textContent = '00:00:00';
+    startBtn.textContent = 'Start';
+    lapBtn.disabled = true;
+    document.getElementById('stopwatch-laps').innerHTML = '';
+  });
+
+  lapBtn.addEventListener('click', () => {
+    if (!swRunning) return;
+    const total = swElapsed + (Date.now() - swStart);
+    swLaps.push(total);
+    const lapsEl = document.getElementById('stopwatch-laps');
+    const lapItem = document.createElement('div');
+    lapItem.className = 'lap-item';
+    lapItem.innerHTML = `<span>Lap ${swLaps.length}</span><span>${formatMs(total)}</span>`;
+    lapsEl.prepend(lapItem);
+  });
+}
+
+function formatMs(ms) {
+  const totalSecs = Math.floor(ms / 1000);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// COUNTDOWN TIMER
+// ═══════════════════════════════════════════════════════════
+
+function initCountdown() {
+  const display = document.getElementById('countdown-time');
+  const startBtn = document.getElementById('btn-countdown-start');
+  const resetBtn = document.getElementById('btn-countdown-reset');
+  const minInput = document.getElementById('inp-countdown-min');
+  const secInput = document.getElementById('inp-countdown-sec');
+
+  function readInputs() {
+    const m = Math.max(0, parseInt(minInput.value, 10) || 0);
+    const s = Math.max(0, Math.min(59, parseInt(secInput.value, 10) || 0));
+    return m * 60 + s;
+  }
+
+  function updateDisplay() {
+    const m = Math.floor(cdLeft / 60);
+    const s = cdLeft % 60;
+    display.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  startBtn.addEventListener('click', () => {
+    if (cdRunning) {
+      // Pause
+      clearInterval(cdInterval);
+      cdRunning = false;
+      startBtn.textContent = 'Start';
+    } else {
+      // Start
+      if (cdLeft <= 0) {
+        cdTotal = readInputs();
+        cdLeft = cdTotal;
+      }
+      if (cdLeft <= 0) return;
+      cdRunning = true;
+      startBtn.textContent = 'Pause';
+      cdInterval = setInterval(() => {
+        cdLeft--;
+        updateDisplay();
+        if (cdLeft <= 0) {
+          clearInterval(cdInterval);
+          cdRunning = false;
+          startBtn.textContent = 'Start';
+          showToast('Timer finished!');
+          beep(880, 0.3, 0.5);
+          beep(660, 0.25, 0.5, 0.4);
+        }
+      }, 1000);
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    clearInterval(cdInterval);
+    cdRunning = false;
+    cdTotal = readInputs();
+    cdLeft = cdTotal;
+    updateDisplay();
+    startBtn.textContent = 'Start';
+  });
+
+  // Update display when inputs change
+  minInput.addEventListener('change', () => {
+    if (!cdRunning) { cdTotal = readInputs(); cdLeft = cdTotal; updateDisplay(); }
+  });
+  secInput.addEventListener('change', () => {
+    if (!cdRunning) { cdTotal = readInputs(); cdLeft = cdTotal; updateDisplay(); }
+  });
+
+  // Initial display
+  cdTotal = readInputs();
+  cdLeft = cdTotal;
+  updateDisplay();
+}
+
+// ═══════════════════════════════════════════════════════════
+// BREATHING EXERCISE
+// ═══════════════════════════════════════════════════════════
+
+function initBreathing() {
+  const circle = document.getElementById('breathing-circle');
+  const label = document.getElementById('breathing-label');
+  const startBtn = document.getElementById('btn-breathing-start');
+  const stopBtn = document.getElementById('btn-breathing-stop');
+
+  const phases = [
+    { name: 'Inhale',  duration: 4, cls: 'inhale' },
+    { name: 'Hold',    duration: 7, cls: 'hold'   },
+    { name: 'Exhale',  duration: 8, cls: 'exhale' },
+  ];
+
+  function stopBreathing() {
+    clearInterval(brInterval);
+    brInterval = null;
+    brPhase = -1;
+    circle.className = 'breathing-circle';
+    label.textContent = 'Ready';
+  }
+
+  function nextPhase() {
+    brPhase = (brPhase + 1) % phases.length;
+    const p = phases[brPhase];
+    circle.className = `breathing-circle ${p.cls}`;
+    let remaining = p.duration;
+    label.textContent = `${p.name} ${remaining}s`;
+    clearInterval(brInterval);
+    brInterval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        nextPhase();
+      } else {
+        label.textContent = `${phases[brPhase].name} ${remaining}s`;
+      }
+    }, 1000);
+  }
+
+  startBtn.addEventListener('click', () => {
+    stopBreathing();
+    nextPhase();
+  });
+  stopBtn.addEventListener('click', stopBreathing);
+}
+
+// ═══════════════════════════════════════════════════════════
+// EQUALIZER (Web Audio API)
+// ═══════════════════════════════════════════════════════════
+
+const EQ_PRESETS = {
+  flat:   { bass: 0,  mid: 0,  treble: 0  },
+  bass:   { bass: 8,  mid: 2,  treble: -2 },
+  treble: { bass: -2, mid: 0,  treble: 8  },
+  vocal:  { bass: -3, mid: 6,  treble: 3  },
+  night:  { bass: 4,  mid: -2, treble: -4 },
+};
+
+function initEqualizer() {
+  const bassSlider   = document.getElementById('eq-bass');
+  const midSlider    = document.getElementById('eq-mid');
+  const trebleSlider = document.getElementById('eq-treble');
+  const bassVal      = document.getElementById('eq-bass-val');
+  const midVal       = document.getElementById('eq-mid-val');
+  const trebleVal    = document.getElementById('eq-treble-val');
+
+  function updateSliderLabels() {
+    bassVal.textContent   = bassSlider.value;
+    midVal.textContent    = midSlider.value;
+    trebleVal.textContent = trebleSlider.value;
+  }
+
+  function applyPreset(name) {
+    const p = EQ_PRESETS[name];
+    if (!p) return;
+    bassSlider.value   = p.bass;
+    midSlider.value    = p.mid;
+    trebleSlider.value = p.treble;
+    updateSliderLabels();
+    document.querySelectorAll('.eq-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.eq === name);
+    });
+    localStorage.setItem('focusfi-eq', name);
+  }
+
+  // Preset buttons
+  document.querySelectorAll('.eq-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(btn.dataset.eq));
+  });
+
+  // Sliders
+  [bassSlider, midSlider, trebleSlider].forEach(slider => {
+    slider.addEventListener('input', () => {
+      updateSliderLabels();
+      // Deselect preset buttons when manually adjusting
+      document.querySelectorAll('.eq-btn').forEach(b => b.classList.remove('active'));
+    });
+  });
+
+  // Restore saved EQ
+  const saved = localStorage.getItem('focusfi-eq') || 'flat';
+  applyPreset(saved);
+}
+
+// ═══════════════════════════════════════════════════════════
+// AD DETECTION & SKIP
+// ═══════════════════════════════════════════════════════════
+
+function initSkipAd() {
+  document.getElementById('btn-skip-ad').addEventListener('click', () => {
+    if (!player) return;
+    // Reload the current stream to skip the ad
+    player.loadVideo(streams[streamIndex].videoId);
+    hideSkipAd();
+    showToast('Reloading stream to skip ad…');
+  });
+}
+
+function startAdDetection() {
+  if (adCheckInterval) clearInterval(adCheckInterval);
+  adCheckInterval = setInterval(checkForAd, 2000);
+}
+
+function checkForAd() {
+  if (!player || !player.isReady) return;
+  try {
+    const p = player.player;
+    // Method 1: Check if video data title contains "advertisement" patterns
+    const videoData = p.getVideoData ? p.getVideoData() : null;
+    const currentUrl = p.getVideoUrl ? p.getVideoUrl() : '';
+
+    // Method 2: For live streams, duration is 0 or very large.
+    // During ads, duration is short and finite.
+    const duration = p.getDuration ? p.getDuration() : 0;
+    const state = p.getPlayerState();
+    const isPlaying = state === YT.PlayerState.PLAYING;
+
+    // If the video is playing with a short finite duration (ad),
+    // or the current video URL doesn't match our expected video
+    const expectedId = streams[streamIndex].videoId;
+    const urlHasOurVideo = currentUrl.includes(expectedId);
+
+    // Heuristic: playing + short duration (< 120s) + doesn't match our stream
+    const possibleAd = isPlaying && duration > 0 && duration < 120 && !urlHasOurVideo;
+
+    if (possibleAd) {
+      showSkipAd();
+    } else {
+      hideSkipAd();
+    }
+  } catch {
+    // Player API call failed, ignore
+  }
+}
+
+function showSkipAd() {
+  document.getElementById('skip-ad-overlay').classList.remove('hidden');
+}
+
+function hideSkipAd() {
+  document.getElementById('skip-ad-overlay').classList.add('hidden');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -649,7 +1007,7 @@ function initKeyboard() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CLOCK
+// CLOCK (header)
 // ═══════════════════════════════════════════════════════════
 
 function initClock() {
@@ -658,6 +1016,35 @@ function initClock() {
     el.textContent = new Date().toLocaleTimeString([], {
       hour:   '2-digit',
       minute: '2-digit',
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BIG CLOCK (centre of gradient background)
+// ═══════════════════════════════════════════════════════════
+
+function initBigClock() {
+  function tick() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+
+    document.getElementById('big-clock-hours').textContent   = String(hours).padStart(2, '0');
+    document.getElementById('big-clock-minutes').textContent = String(minutes).padStart(2, '0');
+    document.getElementById('big-clock-seconds').textContent = String(seconds).padStart(2, '0');
+    document.getElementById('big-clock-ampm').textContent    = ampm;
+
+    document.getElementById('big-clock-date').textContent = now.toLocaleDateString([], {
+      weekday: 'long',
+      year:    'numeric',
+      month:   'long',
+      day:     'numeric',
     });
   }
   tick();

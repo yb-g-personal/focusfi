@@ -927,6 +927,311 @@ input, textarea { font-family: var(--font); }
 }
 .error-msg.hidden { display: none; }
 
+/* ── Big Clock ────────────────────────────────────────────── */
+.big-clock {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+.big-clock.hidden { opacity: 0; }
+
+.big-clock-time {
+  font-size: min(18vw, 200px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-shadow: 0 4px 40px rgba(0,0,0,0.5);
+}
+.big-clock-sep {
+  opacity: 0.5;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% { opacity: 0.15; }
+}
+.big-clock-ampm {
+  font-size: min(3.5vw, 40px);
+  font-weight: 500;
+  color: var(--accent);
+  margin-left: 0.15em;
+  vertical-align: super;
+}
+.big-clock-seconds {
+  font-size: min(2.5vw, 28px);
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  margin-top: -0.2em;
+}
+.big-clock-date {
+  font-size: min(1.8vw, 20px);
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+}
+
+/* Pomodoro overlay on big clock */
+.big-clock-pomo {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 22px;
+  background: rgba(124, 106, 245, 0.12);
+  border: 1px solid rgba(124, 106, 245, 0.25);
+  border-radius: 12px;
+  opacity: 1;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.big-clock-pomo.hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+.pomo-icon { font-size: 18px; }
+#big-clock-pomo-time {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-hi);
+}
+.pomo-sep {
+  color: var(--text-dim);
+  font-size: 16px;
+}
+#big-clock-pomo-end {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Header clock fade for Clock bg mode ─────────────────── */
+.clock.fade-out {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* ── Stopwatch Panel ─────────────────────────────────────── */
+#stopwatch-time {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.stopwatch-laps {
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stopwatch-laps::-webkit-scrollbar { display: none; }
+.lap-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.lap-item:nth-child(odd) { background: rgba(255,255,255,0.02); }
+
+/* ── Countdown Timer Panel ───────────────────────────────── */
+#countdown-time {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.countdown-set-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.countdown-set-row label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+.countdown-set-row input[type="number"] {
+  width: 50px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.countdown-set-row input[type="number"]::-webkit-inner-spin-button { display: none; }
+.countdown-set-row input[type="number"]:focus { border-color: var(--accent); }
+
+/* ── Breathing Exercise ──────────────────────────────────── */
+.breathing-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.breathing-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 4s ease-in-out, border-color 0.5s ease, box-shadow 0.5s ease;
+  box-shadow: 0 0 0 0 rgba(124,106,245,0);
+}
+.breathing-circle.inhale {
+  transform: scale(1.3);
+  border-color: var(--accent-hi);
+  box-shadow: 0 0 30px rgba(124,106,245,0.3);
+}
+.breathing-circle.hold {
+  transform: scale(1.3);
+  border-color: var(--success);
+  box-shadow: 0 0 20px rgba(74,222,128,0.2);
+}
+.breathing-circle.exhale {
+  transform: scale(1);
+  border-color: var(--text-muted);
+  box-shadow: 0 0 0 0 rgba(124,106,245,0);
+}
+.breathing-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.breathing-info {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* ── Equalizer ───────────────────────────────────────────── */
+.eq-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.eq-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: all var(--transition);
+}
+.eq-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+.eq-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+
+.eq-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.eq-band {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.eq-band label {
+  width: 42px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.eq-band input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--border-hi);
+  outline: none;
+  cursor: pointer;
+}
+.eq-band input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+.eq-band input[type="range"]::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+.eq-band span {
+  width: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* ── Skip Ad Overlay ─────────────────────────────────────── */
+.skip-ad-overlay {
+  position: fixed;
+  bottom: calc(var(--player-h) + 14px);
+  right: 18px;
+  z-index: 110;
+  animation: toastIn 0.25s ease;
+}
+.skip-ad-overlay.hidden { display: none; }
+.btn-skip-ad {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: var(--error);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.btn-skip-ad:hover {
+  background: rgba(248, 113, 113, 0.25);
+  border-color: var(--error);
+  transform: scale(1.03);
+}
+
 /* ── Toast Notification ──────────────────────────────────── */
 .toast {
   position: fixed;
