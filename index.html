@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <script>try{var s=JSON.parse(localStorage.getItem('focusfi-settings'));if(s&&s.theme)document.documentElement.dataset.theme=s.theme}catch(e){}</script>
 </head>
 <body>
 
@@ -68,6 +69,31 @@
     <polyline points="12 6 12 12 16 14"/>
   </symbol>
 
+  <symbol id="ic-tomato" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3c-1.5 0-2.5.5-3 1.5C6 5 3 8 3 12.5 3 17.2 7 21 12 21s9-3.8 9-8.5c0-4.5-3-7.5-6-8C14.5 3.5 13.5 3 12 3z" fill="rgba(248,113,113,0.2)"/>
+    <path d="M12 3c-1.5 0-2.5.5-3 1.5C6 5 3 8 3 12.5 3 17.2 7 21 12 21s9-3.8 9-8.5c0-4.5-3-7.5-6-8C14.5 3.5 13.5 3 12 3z"/>
+    <path d="M10 2c1 1.5 1.5 2 2 2s1-.5 2-2" stroke-width="1.5"/>
+  </symbol>
+
+  <symbol id="ic-hourglass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3h14"/>
+    <path d="M5 21h14"/>
+    <path d="M7 3v4l5 5-5 5v4"/>
+    <path d="M17 3v4l-5 5 5 5v4"/>
+  </symbol>
+
+  <symbol id="ic-eq" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="4" y1="21" x2="4" y2="14"/>
+    <line x1="4" y1="10" x2="4" y2="3"/>
+    <line x1="12" y1="21" x2="12" y2="12"/>
+    <line x1="12" y1="8" x2="12" y2="3"/>
+    <line x1="20" y1="21" x2="20" y2="16"/>
+    <line x1="20" y1="12" x2="20" y2="3"/>
+    <circle cx="4" cy="12" r="2" fill="currentColor"/>
+    <circle cx="12" cy="10" r="2" fill="currentColor"/>
+    <circle cx="20" cy="14" r="2" fill="currentColor"/>
+  </symbol>
+
   <symbol id="ic-tasks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <line x1="9" y1="6" x2="20" y2="6"/>
     <line x1="9" y1="12" x2="20" y2="12"/>
@@ -104,6 +130,38 @@
     <circle cx="18" cy="16" r="3"/>
   </symbol>
 
+  <symbol id="ic-stopwatch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="13" r="8"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <line x1="10" y1="2" x2="14" y2="2"/>
+    <line x1="12" y1="2" x2="12" y2="5"/>
+  </symbol>
+
+  <symbol id="ic-wind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.59 4.59A2 2 0 1 1 11 8H2"/>
+    <path d="M12.59 19.41A2 2 0 1 0 14 16H2"/>
+    <path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/>
+  </symbol>
+
+  <symbol id="ic-skip-ad" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 4 15 12 5 20 5 4"/>
+    <rect x="17" y="4" width="3" height="16"/>
+  </symbol>
+
+  <symbol id="ic-headphones" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z"/>
+    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z"/>
+  </symbol>
+
+  <symbol id="ic-quote" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6 17h3l2-4V7H5v6h3l-2 4zm8 0h3l2-4V7h-6v6h3l-2 4z"/>
+  </symbol>
+
+  <symbol id="ic-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </symbol>
+
 </svg>
 
 <!-- ═══════════════════════════════════════════════
@@ -111,6 +169,22 @@
      ═══════════════════════════════════════════════ -->
 <div id="background">
   <div id="bg-gradient" class="bg-layer active"></div>
+  <canvas id="bg-visualizer" class="bg-layer"></canvas>
+  <!-- Large clock overlay shown on gradient/clock mode -->
+  <div id="big-clock" class="big-clock">
+    <div class="big-clock-time">
+      <span id="big-clock-hours">12</span><span class="big-clock-sep">:</span><span id="big-clock-minutes">00</span><span class="big-clock-ampm" id="big-clock-ampm">AM</span>
+    </div>
+    <div class="big-clock-seconds" id="big-clock-seconds">00</div>
+    <div class="big-clock-date" id="big-clock-date">Saturday, January 1, 2026</div>
+    <!-- Pomodoro timer fades in here when running -->
+    <div id="big-clock-pomo" class="big-clock-pomo hidden">
+      <svg class="pomo-icon"><use href="#ic-tomato"/></svg>
+      <span id="big-clock-pomo-time">25:00</span>
+      <span class="pomo-sep">·</span>
+      <span id="big-clock-pomo-end">ends at --:--</span>
+    </div>
+  </div>
   <div id="bg-gif" class="bg-layer">
     <img id="gif-img" src="" alt="" draggable="false" />
   </div>
@@ -149,19 +223,13 @@
     <span class="logo-text">focusfi</span>
   </div>
 
-  <div class="header-center">
-    <div class="bg-selector" role="group" aria-label="Background mode">
-      <button class="bg-btn active" data-bg="gradient">Gradient</button>
-      <button class="bg-btn" data-bg="gif">GIF</button>
-      <button class="bg-btn" data-bg="stream">Stream</button>
-    </div>
-  </div>
+  <div class="header-center"></div>
 
   <div class="header-right">
     <span id="clock" class="clock" aria-live="off"></span>
     <button class="tool-toggle" data-panel="timer-panel" aria-label="Toggle timer">
-      <svg class="icon"><use href="#ic-clock"/></svg>
-      <span class="tl">Timer</span>
+      <svg class="icon"><use href="#ic-tomato"/></svg>
+      <span class="tl">Pomodoro</span>
     </button>
     <button class="tool-toggle" data-panel="tasks-panel" aria-label="Toggle tasks">
       <svg class="icon"><use href="#ic-tasks"/></svg>
@@ -170,6 +238,30 @@
     <button class="tool-toggle" data-panel="notes-panel" aria-label="Toggle notes">
       <svg class="icon"><use href="#ic-edit"/></svg>
       <span class="tl">Notes</span>
+    </button>
+    <button class="tool-toggle" data-panel="stopwatch-panel" aria-label="Toggle stopwatch">
+      <svg class="icon"><use href="#ic-stopwatch"/></svg>
+      <span class="tl">Stopwatch</span>
+    </button>
+    <button class="tool-toggle" data-panel="countdown-panel" aria-label="Toggle countdown timer">
+      <svg class="icon"><use href="#ic-hourglass"/></svg>
+      <span class="tl">Timer</span>
+    </button>
+    <button class="tool-toggle" data-panel="breathing-panel" aria-label="Toggle breathing">
+      <svg class="icon"><use href="#ic-wind"/></svg>
+      <span class="tl">Breathe</span>
+    </button>
+    <button class="tool-toggle" data-panel="ambient-panel" aria-label="Toggle ambient sounds">
+      <svg class="icon"><use href="#ic-headphones"/></svg>
+      <span class="tl">Ambient</span>
+    </button>
+    <button class="tool-toggle" data-panel="quote-panel" aria-label="Toggle focus quote">
+      <svg class="icon"><use href="#ic-quote"/></svg>
+      <span class="tl">Quote</span>
+    </button>
+    <button class="tool-toggle" data-panel="settings-panel" aria-label="Toggle settings">
+      <svg class="icon"><use href="#ic-settings"/></svg>
+      <span class="tl">Settings</span>
     </button>
   </div>
 
@@ -267,6 +359,169 @@
     </div>
   </div>
 
+  <!-- ── Stopwatch ── -->
+  <div id="stopwatch-panel" class="panel hidden" role="region" aria-label="Stopwatch">
+    <div class="panel-header">
+      <h3>Stopwatch</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Stopwatch"
+          data-tip="A simple stopwatch to track how long you spend on tasks. Start, stop, and reset as needed.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="stopwatch-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="timer-display">
+        <span id="stopwatch-time">00:00:00</span>
+      </div>
+      <div class="timer-controls">
+        <button id="btn-stopwatch-start" class="btn-primary">Start</button>
+        <button id="btn-stopwatch-reset" class="btn-secondary">Reset</button>
+      </div>
+      <div id="stopwatch-laps" class="stopwatch-laps"></div>
+      <button id="btn-stopwatch-lap" class="btn-secondary" style="width:100%;margin-top:8px" disabled>Lap</button>
+    </div>
+  </div>
+
+  <!-- ── Breathing Exercise ── -->
+  <div id="breathing-panel" class="panel hidden" role="region" aria-label="Breathing Exercise">
+    <div class="panel-header">
+      <h3>Breathe</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Breathing"
+          data-tip="4-7-8 breathing technique: Inhale 4s, Hold 7s, Exhale 8s. Reduces stress and improves focus.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="breathing-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body breathing-body">
+      <div class="breathing-circle" id="breathing-circle">
+        <span class="breathing-label" id="breathing-label">Ready</span>
+      </div>
+      <div class="timer-controls" style="margin-top:14px">
+        <button id="btn-breathing-start" class="btn-primary">Start</button>
+        <button id="btn-breathing-stop" class="btn-secondary">Stop</button>
+      </div>
+      <p class="breathing-info">4-7-8 technique · Inhale · Hold · Exhale</p>
+    </div>
+  </div>
+
+  <!-- ── Countdown Timer ── -->
+  <div id="countdown-panel" class="panel hidden" role="region" aria-label="Countdown Timer">
+    <div class="panel-header">
+      <h3>Timer</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Timer"
+          data-tip="A generic countdown timer. Set any duration and start. Get notified when time is up.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="countdown-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="timer-display" aria-live="polite">
+        <span id="countdown-time">00:00</span>
+      </div>
+      <div class="countdown-set-row">
+        <label>Min <input type="number" id="inp-countdown-min" value="5" min="0" max="999"></label>
+        <label>Sec <input type="number" id="inp-countdown-sec" value="0" min="0" max="59"></label>
+      </div>
+      <div class="timer-controls">
+        <button id="btn-countdown-start" class="btn-primary">Start</button>
+        <button id="btn-countdown-reset" class="btn-secondary">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Ambient Sounds ── -->
+  <div id="ambient-panel" class="panel hidden" role="region" aria-label="Ambient Sounds">
+    <div class="panel-header">
+      <h3>Ambient Sounds</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Ambient Sounds"
+          data-tip="Layer calming ambient sounds on top of your music. Mix rain, fireplace, birds, or wind to create your ideal focus environment.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="ambient-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="ambient-grid" id="ambient-grid"></div>
+      <div class="ambient-master">
+        <label>Master volume</label>
+        <input type="range" id="ambient-volume" min="0" max="100" value="50" aria-label="Ambient volume">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Focus Quote ── -->
+  <div id="quote-panel" class="panel hidden" role="region" aria-label="Focus Quote">
+    <div class="panel-header">
+      <h3>Focus Quote</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Focus Quote"
+          data-tip="Get inspired with a random focus and productivity quote. Click the refresh button for a new one.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="quote-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <blockquote class="focus-quote" id="focus-quote-text">
+        The secret of getting ahead is getting started.
+      </blockquote>
+      <p class="focus-quote-author" id="focus-quote-author">— Mark Twain</p>
+      <button id="btn-new-quote" class="btn-secondary" style="width:100%;margin-top:10px">New Quote</button>
+    </div>
+  </div>
+
+  <!-- ── Settings ── -->
+  <div id="settings-panel" class="panel hidden" role="region" aria-label="Settings">
+    <div class="panel-header">
+      <h3>Settings</h3>
+      <div class="panel-actions">
+        <button class="close-panel" data-panel="settings-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <p class="section-label">Scene</p>
+      <div class="bg-selector" role="group" aria-label="Background mode">
+        <button class="bg-btn active" data-bg="gradient">Clock</button>
+        <button class="bg-btn" data-bg="gif">GIF</button>
+        <button class="bg-btn" data-bg="stream">Stream</button>
+        <button class="bg-btn" data-bg="visualizer">Visualizer</button>
+      </div>
+
+      <p class="section-label" style="margin-top:16px">Appearance</p>
+      <div class="theme-selector" role="group" aria-label="Theme">
+        <button class="theme-btn active" data-theme="dark">Dark</button>
+        <button class="theme-btn" data-theme="light">Light</button>
+        <button class="theme-btn" data-theme="evening">Evening</button>
+      </div>
+
+      <p class="section-label" style="margin-top:16px">Clock Format</p>
+      <div class="clock-fmt-selector" role="group" aria-label="Clock format">
+        <button class="clock-fmt-btn active" data-fmt="system">System</button>
+        <button class="clock-fmt-btn" data-fmt="12h">12-hour</button>
+        <button class="clock-fmt-btn" data-fmt="24h">24-hour</button>
+      </div>
+    </div>
+  </div>
+
 </aside>
 
 <!-- ═══════════════════════════════════════════════
@@ -293,8 +548,35 @@
         <button id="btn-load-stream" class="btn-primary">Load</button>
       </div>
       <p id="stream-error" class="error-msg hidden" role="alert"></p>
+
+      <p class="section-label" style="margin-top:20px">
+        <svg class="icon icon-sm" style="vertical-align:-2px;margin-right:4px"><use href="#ic-eq"/></svg>
+        Equalizer
+      </p>
+      <div id="eq-presets" class="eq-presets">
+        <button class="eq-btn active" data-eq="flat">Flat</button>
+        <button class="eq-btn" data-eq="bass">Bass Boost</button>
+        <button class="eq-btn" data-eq="treble">Treble</button>
+        <button class="eq-btn" data-eq="vocal">Vocal</button>
+        <button class="eq-btn" data-eq="night">Night</button>
+      </div>
+      <div id="eq-sliders" class="eq-sliders">
+        <div class="eq-band"><label>Bass</label><input type="range" id="eq-bass" min="-12" max="12" value="0" step="1"><span id="eq-bass-val">0</span></div>
+        <div class="eq-band"><label>Mid</label><input type="range" id="eq-mid" min="-12" max="12" value="0" step="1"><span id="eq-mid-val">0</span></div>
+        <div class="eq-band"><label>Treble</label><input type="range" id="eq-treble" min="-12" max="12" value="0" step="1"><span id="eq-treble-val">0</span></div>
+      </div>
     </div>
   </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SKIP AD OVERLAY
+     ═══════════════════════════════════════════════ -->
+<div id="skip-ad-overlay" class="skip-ad-overlay hidden">
+  <button id="btn-skip-ad" class="btn-skip-ad" aria-label="Skip ad">
+    <svg class="icon" style="width:18px;height:18px"><use href="#ic-skip-ad"/></svg>
+    <span>Skip Ad</span>
+  </button>
 </div>
 
 <!-- ═══════════════════════════════════════════════
