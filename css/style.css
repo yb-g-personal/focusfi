@@ -1898,7 +1898,8 @@ button { cursor: pointer; }
   position: fixed;
   bottom: calc(var(--player-h) + 14px);
   right: 18px;
-  z-index: 110;
+  z-index: 150;
+  pointer-events: auto;
   animation: toastIn 0.25s ease;
 }
 .skip-ad-overlay.hidden { display: none; }
@@ -1914,6 +1915,7 @@ button { cursor: pointer; }
   padding: 10px 18px;
   border-radius: 8px;
   cursor: pointer;
+  pointer-events: auto;
   transition: all var(--transition);
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }

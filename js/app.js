@@ -141,6 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initSpotifyUI();
   loadVideos();
 
+  // Pre-init Spotify controller so it's ready when user switches source
+  ensureSpotifyController();
+
   // Restore last background mode
   setBackground(settings.scene, true);
 
@@ -389,10 +392,14 @@ async function loadVideos() {
 
 function showVideo(i) {
   if (videoList.length === 0) return;
+  videoIndex = i;
   const vid = document.getElementById('bg-video');
   vid.src = `assets/videos/${videoList[i]}`;
   vid.load();
-  vid.play().catch(() => {});
+  // Only auto-play if the video background mode is active
+  if (bgMode === 'gif') {
+    vid.play().catch(() => {});
+  }
   // Update name display
   const nameEl = document.getElementById('video-name');
   if (nameEl) {
@@ -525,6 +532,12 @@ function switchStream() {
 }
 
 function toggleForeground() {
+  if (musicSource === 'spotify') {
+    // Open Spotify web player in new tab
+    const pl = SPOTIFY_PLAYLISTS[spotifyIndex];
+    window.open(`https://open.spotify.com/playlist/${pl.uri}`, '_blank');
+    return;
+  }
   if (playerMode === 'modal') {
     closeForeground();
   } else {
@@ -560,8 +573,8 @@ function setMusicSource(source) {
     spotifyWrapper.classList.remove('hidden');
     if (player) player.pause();
     loadSpotifyPlaylist(spotifyIndex);
-    // Hide view button for Spotify (no foreground video)
-    document.getElementById('btn-view').style.display = 'none';
+    // Show view button for Spotify — opens web player
+    document.getElementById('btn-view').style.display = '';
     hideSkipAd();
   } else {
     ytWrapper.classList.remove('source-hidden');
@@ -589,6 +602,12 @@ function ensureSpotifyController(cb) {
   }
   const element = document.getElementById('spotify-embed');
   if (!element) return;
+
+  // Spotify IFrame API needs the container to be visible to render
+  const wrapper = document.getElementById('spotify-wrapper');
+  const wasHidden = wrapper && wrapper.classList.contains('hidden');
+  if (wasHidden) wrapper.classList.remove('hidden');
+
   const options = {
     width: '100%',
     height: 352,
@@ -596,6 +615,8 @@ function ensureSpotifyController(cb) {
   };
   api.createController(element, options, (controller) => {
     spotifyController = controller;
+    // Re-hide if Spotify isn't the active source yet
+    if (wasHidden && musicSource !== 'spotify') wrapper.classList.add('hidden');
     controller.addListener('playback_update', (e) => {
       if (musicSource !== 'spotify') return;
       spotifyPaused = e.data.isPaused;
@@ -1245,6 +1266,15 @@ function initEqualizer() {
   const midVal       = document.getElementById('eq-mid-val');
   const trebleVal    = document.getElementById('eq-treble-val');
 
+  /** Apply current slider values to the Web Audio EQ filters */
+  function applyEqToFilters() {
+    // Ensure the audio graph (and filters) exist
+    getSharedAudioGraph();
+    if (eqBassFilter)   eqBassFilter.gain.value   = parseFloat(bassSlider.value);
+    if (eqMidFilter)    eqMidFilter.gain.value    = parseFloat(midSlider.value);
+    if (eqTrebleFilter) eqTrebleFilter.gain.value = parseFloat(trebleSlider.value);
+  }
+
   function updateSliderLabels() {
     bassVal.textContent   = bassSlider.value;
     midVal.textContent    = midSlider.value;
@@ -1258,6 +1288,7 @@ function initEqualizer() {
     midSlider.value    = p.mid;
     trebleSlider.value = p.treble;
     updateSliderLabels();
+    applyEqToFilters();
     document.querySelectorAll('.eq-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.eq === name);
     });
@@ -1269,10 +1300,11 @@ function initEqualizer() {
     btn.addEventListener('click', () => applyPreset(btn.dataset.eq));
   });
 
-  // Sliders
+  // Sliders — update labels AND apply to audio filters in real-time
   [bassSlider, midSlider, trebleSlider].forEach(slider => {
     slider.addEventListener('input', () => {
       updateSliderLabels();
+      applyEqToFilters();
       // Deselect preset buttons when manually adjusting
       document.querySelectorAll('.eq-btn').forEach(b => b.classList.remove('active'));
     });
@@ -1288,7 +1320,8 @@ function initEqualizer() {
 // ═══════════════════════════════════════════════════════════
 
 function initSkipAd() {
-  document.getElementById('btn-skip-ad').addEventListener('click', () => {
+  document.getElementById('btn-skip-ad').addEventListener('click', (e) => {
+    e.stopPropagation();
     if (!player) return;
     // Reload the current stream to skip the ad
     player.loadVideo(streams[streamIndex].videoId);
@@ -1306,23 +1339,25 @@ function checkForAd() {
   if (!player || !player.isReady) return;
   try {
     const p = player.player;
+    if (!p || typeof p.getPlayerState !== 'function') return;
     const state = p.getPlayerState();
     const isPlaying = state === YT.PlayerState.PLAYING;
 
     // Check multiple heuristics for ad detection
-    const duration = p.getDuration ? p.getDuration() : 0;
-    const currentUrl = p.getVideoUrl ? p.getVideoUrl() : '';
-    const expectedId = streams[streamIndex].videoId;
-    const urlHasOurVideo = currentUrl.includes(expectedId);
+    const duration = typeof p.getDuration === 'function' ? p.getDuration() : 0;
 
     // Heuristic 1: playing + short finite duration = ad
     const shortDurationAd = isPlaying && duration > 0 && duration < MAX_AD_DURATION_SECONDS;
 
-    // Heuristic 2: URL doesn't match our expected stream while playing
-    const wrongVideoAd = isPlaying && !urlHasOurVideo && currentUrl.length > 0;
-
-    // Heuristic 3: Check for ad overlay elements inside the iframe (best effort)
-    // The YT API doesn't expose this cleanly, so we rely on duration + URL heuristics
+    // Heuristic 2: URL mismatch (may fail cross-origin, so wrapped separately)
+    let wrongVideoAd = false;
+    try {
+      const currentUrl = typeof p.getVideoUrl === 'function' ? p.getVideoUrl() : '';
+      const expectedId = streams[streamIndex].videoId;
+      if (currentUrl && !currentUrl.includes(expectedId)) {
+        wrongVideoAd = isPlaying;
+      }
+    } catch { /* getVideoUrl may throw cross-origin */ }
 
     if (shortDurationAd || wrongVideoAd) {
       showSkipAd();
@@ -1334,12 +1369,30 @@ function checkForAd() {
   }
 }
 
+let adAutoForeground = false;
+
 function showSkipAd() {
   document.getElementById('skip-ad-overlay').classList.remove('hidden');
+  // Auto-open foreground so user can interact with YouTube's native skip button
+  if (playerMode !== 'modal') {
+    setPlayerMode('modal');
+    adAutoForeground = true;
+  }
+  // Hide the transparent click-blocker so user can click YouTube's skip controls
+  const cover = document.getElementById('yt-cover');
+  if (cover) cover.style.display = 'none';
 }
 
 function hideSkipAd() {
   document.getElementById('skip-ad-overlay').classList.add('hidden');
+  // Restore yt-cover
+  const cover = document.getElementById('yt-cover');
+  if (cover) cover.style.display = '';
+  // Close foreground only if we auto-opened it
+  if (adAutoForeground) {
+    adAutoForeground = false;
+    closeForeground();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1665,16 +1718,43 @@ function showToast(msg, duration = 3000) {
 let sharedAudioCtx = null;
 let sharedAnalyser = null;
 
+// ── EQ filter nodes (inserted between gain and analyser) ──
+let eqBassFilter   = null;
+let eqMidFilter    = null;
+let eqTrebleFilter = null;
+
 function getSharedAudioGraph() {
   if (!sharedAudioCtx) {
     sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     sharedAnalyser = sharedAudioCtx.createAnalyser();
     sharedAnalyser.fftSize = 128;
     sharedAnalyser.smoothingTimeConstant = 0.82;
+
+    // Create EQ filters: bass (lowshelf) → mid (peaking) → treble (highshelf) → analyser → destination
+    eqBassFilter = sharedAudioCtx.createBiquadFilter();
+    eqBassFilter.type = 'lowshelf';
+    eqBassFilter.frequency.value = 200;
+    eqBassFilter.gain.value = 0;
+
+    eqMidFilter = sharedAudioCtx.createBiquadFilter();
+    eqMidFilter.type = 'peaking';
+    eqMidFilter.frequency.value = 1000;
+    eqMidFilter.Q.value = 1.0;
+    eqMidFilter.gain.value = 0;
+
+    eqTrebleFilter = sharedAudioCtx.createBiquadFilter();
+    eqTrebleFilter.type = 'highshelf';
+    eqTrebleFilter.frequency.value = 4000;
+    eqTrebleFilter.gain.value = 0;
+
+    // Chain: ... → eqBass → eqMid → eqTreble → analyser → destination
+    eqBassFilter.connect(eqMidFilter);
+    eqMidFilter.connect(eqTrebleFilter);
+    eqTrebleFilter.connect(sharedAnalyser);
     sharedAnalyser.connect(sharedAudioCtx.destination);
   }
   if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
-  return { ctx: sharedAudioCtx, analyser: sharedAnalyser };
+  return { ctx: sharedAudioCtx, analyser: sharedAnalyser, eqInput: eqBassFilter };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1734,12 +1814,12 @@ function toggleAmbient(sound) {
     audio.crossOrigin = 'anonymous';
 
     try {
-      const { ctx, analyser } = getSharedAudioGraph();
+      const { ctx, eqInput } = getSharedAudioGraph();
       const source = ctx.createMediaElementSource(audio);
       const gain   = ctx.createGain();
       gain.gain.value = vol;
       source.connect(gain);
-      gain.connect(analyser); // analyser → destination
+      gain.connect(eqInput); // gain → eqBass → eqMid → eqTreble → analyser → destination
       audio.play().then(() => {
         item.classList.add('active');
       }).catch((err) => {
@@ -1967,6 +2047,8 @@ let vizBars = [];
 let vizAnalyser = null;
 let vizAudioCtx = null;
 let vizMediaSource = null;
+let micStream = null;
+let micSource  = null;
 
 function initVisualizer() {
   vizCanvas = document.getElementById('bg-visualizer');
@@ -1987,9 +2069,39 @@ function resizeVizCanvas() {
   vizCanvas.height = window.innerHeight;
 }
 
+/**
+ * Try to capture system/tab audio via microphone input for visualizer.
+ * This lets the visualizer react to YouTube & Spotify audio.
+ */
+function enableMicVisualizer() {
+  if (micStream) return; // already capturing
+  navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+    .then(stream => {
+      micStream = stream;
+      const { ctx, eqInput } = getSharedAudioGraph();
+      micSource = ctx.createMediaStreamSource(stream);
+      // Connect mic → analyser only (NOT destination to avoid feedback)
+      micSource.connect(sharedAnalyser);
+      showToast('Microphone enabled for visualizer');
+    })
+    .catch(() => {
+      showToast('Mic access denied — visualizer reacts to ambient sounds only');
+    });
+}
+
+function disableMicVisualizer() {
+  if (micSource) { try { micSource.disconnect(); } catch {} micSource = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+}
+
 function startVisualizer() {
   if (vizAnimId) return;
   resizeVizCanvas();
+
+  // If no ambient sounds are playing, try mic capture for YouTube/Spotify audio reactivity
+  if (Object.keys(ambientAudios).length === 0 && !micStream) {
+    enableMicVisualizer();
+  }
 
   let freqBuf = null;
 
@@ -2077,6 +2189,7 @@ function stopVisualizer() {
   if (vizCtx && vizCanvas) {
     vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
   }
+  disableMicVisualizer();
 }
 
 function hexToRgb(hex) {
