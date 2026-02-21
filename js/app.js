@@ -94,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initBreathing();
   initEqualizer();
   initSkipAd();
+  initAmbientSounds();
+  initQuote();
+  initEasterEggs();
   loadGifs();
 
   // Restore last background mode
@@ -1072,4 +1075,222 @@ function showToast(msg, duration = 3000) {
     toast.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
     setTimeout(() => toast.remove(), 260);
   }, duration);
+}
+
+// ═══════════════════════════════════════════════════════════
+// AMBIENT SOUNDS (Web Audio API — generated noise)
+// ═══════════════════════════════════════════════════════════
+
+const AMBIENT_SOUNDS = [
+  { id: 'rain',      name: 'Rain',      type: 'brown' },
+  { id: 'wind',      name: 'Wind',      type: 'pink'  },
+  { id: 'white',     name: 'White Noise', type: 'white' },
+  { id: 'fireplace', name: 'Fireplace', type: 'crackle' },
+  { id: 'forest',    name: 'Forest',    type: 'filtered-pink' },
+  { id: 'ocean',     name: 'Ocean',     type: 'ocean' },
+];
+
+let ambientCtx = null;
+const ambientNodes = {};
+
+function initAmbientSounds() {
+  const grid = document.getElementById('ambient-grid');
+  const volSlider = document.getElementById('ambient-volume');
+
+  AMBIENT_SOUNDS.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'ambient-item';
+    item.dataset.id = s.id;
+    item.innerHTML = `<svg class="ambient-icon"><use href="#ic-headphones"/></svg><span class="ambient-name">${s.name}</span>`;
+    item.addEventListener('click', () => toggleAmbient(s));
+    grid.appendChild(item);
+  });
+
+  volSlider.addEventListener('input', () => {
+    const vol = parseInt(volSlider.value, 10) / 100;
+    Object.values(ambientNodes).forEach(n => {
+      if (n.gain) n.gain.gain.setValueAtTime(vol * 0.3, n.ctx.currentTime);
+    });
+  });
+}
+
+function getAmbientCtx() {
+  if (!ambientCtx) ambientCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return ambientCtx;
+}
+
+function toggleAmbient(sound) {
+  const item = document.querySelector(`.ambient-item[data-id="${sound.id}"]`);
+  if (ambientNodes[sound.id]) {
+    // Stop
+    ambientNodes[sound.id].source.stop();
+    delete ambientNodes[sound.id];
+    item.classList.remove('active');
+  } else {
+    // Start
+    try {
+      const ctx = getAmbientCtx();
+      const vol = parseInt(document.getElementById('ambient-volume').value, 10) / 100;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(vol * 0.3, ctx.currentTime);
+      gain.connect(ctx.destination);
+
+      const bufferSize = 2 * ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      // Generate different noise types
+      if (sound.type === 'white') {
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      } else if (sound.type === 'pink' || sound.type === 'filtered-pink') {
+        let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
+        for (let i = 0; i < bufferSize; i++) {
+          const w = Math.random() * 2 - 1;
+          b0 = 0.99886*b0 + w*0.0555179; b1 = 0.99332*b1 + w*0.0750759;
+          b2 = 0.96900*b2 + w*0.1538520; b3 = 0.86650*b3 + w*0.3104856;
+          b4 = 0.55000*b4 + w*0.5329522; b5 = -0.7616*b5 - w*0.0168980;
+          data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
+          b6 = w * 0.115926;
+        }
+      } else if (sound.type === 'brown' || sound.type === 'crackle') {
+        let last = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const w = Math.random() * 2 - 1;
+          data[i] = (last + (0.02 * w)) / 1.02;
+          last = data[i];
+          data[i] *= 3.5;
+          if (sound.type === 'crackle' && Math.random() < 0.001) {
+            data[i] += (Math.random() - 0.5) * 0.5;
+          }
+        }
+      } else if (sound.type === 'ocean') {
+        let last = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const t = i / ctx.sampleRate;
+          const wave = Math.sin(t * 0.15 * Math.PI * 2) * 0.5 + 0.5;
+          const w = Math.random() * 2 - 1;
+          data[i] = (last + (0.02 * w)) / 1.02;
+          last = data[i];
+          data[i] *= 3.5 * wave;
+        }
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(gain);
+      source.start();
+
+      ambientNodes[sound.id] = { source, gain, ctx };
+      item.classList.add('active');
+    } catch { /* AudioContext not available */ }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// FOCUS QUOTE
+// ═══════════════════════════════════════════════════════════
+
+const QUOTES = [
+  { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
+  { text: 'Focus on being productive instead of busy.', author: 'Tim Ferriss' },
+  { text: 'It is during our darkest moments that we must focus to see the light.', author: 'Aristotle' },
+  { text: 'Concentrate all your thoughts upon the work at hand.', author: 'Alexander Graham Bell' },
+  { text: 'The successful warrior is the average man, with laser-like focus.', author: 'Bruce Lee' },
+  { text: 'Do what you can, with what you have, where you are.', author: 'Theodore Roosevelt' },
+  { text: 'You don\'t have to be great to start, but you have to start to be great.', author: 'Zig Ziglar' },
+  { text: 'Action is the foundational key to all success.', author: 'Pablo Picasso' },
+  { text: 'Start where you are. Use what you have. Do what you can.', author: 'Arthur Ashe' },
+  { text: 'Simplicity is the ultimate sophistication.', author: 'Leonardo da Vinci' },
+  { text: 'Don\'t count the days, make the days count.', author: 'Muhammad Ali' },
+  { text: 'Your limitation — it\'s only your imagination.', author: 'Unknown' },
+  { text: 'Dream it. Wish it. Do it.', author: 'Unknown' },
+  { text: 'Great things never come from comfort zones.', author: 'Unknown' },
+  { text: 'The harder you work for something, the greater you\'ll feel when you achieve it.', author: 'Unknown' },
+  { text: 'Stay focused, go after your dreams, and keep moving toward your goals.', author: 'LL Cool J' },
+  { text: 'Deep work is the ability to focus without distraction on a cognitively demanding task.', author: 'Cal Newport' },
+  { text: 'Where focus goes, energy flows.', author: 'Tony Robbins' },
+];
+
+let quoteIndex = Math.floor(Math.random() * QUOTES.length);
+
+function initQuote() {
+  showQuote();
+  document.getElementById('btn-new-quote').addEventListener('click', () => {
+    quoteIndex = (quoteIndex + 1) % QUOTES.length;
+    showQuote();
+  });
+}
+
+function showQuote() {
+  const q = QUOTES[quoteIndex];
+  document.getElementById('focus-quote-text').textContent = q.text;
+  document.getElementById('focus-quote-author').textContent = `— ${q.author}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// EASTER EGGS
+// ═══════════════════════════════════════════════════════════
+
+function initEasterEggs() {
+  // ── Konami Code: up up down down left right left right b a ──
+  const konamiSequence = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let konamiPos = 0;
+  document.addEventListener('keydown', (e) => {
+    if (e.key === konamiSequence[konamiPos]) {
+      konamiPos++;
+      if (konamiPos === konamiSequence.length) {
+        konamiPos = 0;
+        triggerKonamiEgg();
+      }
+    } else {
+      konamiPos = e.key === konamiSequence[0] ? 1 : 0;
+    }
+  });
+
+  // ── Logo click 5 times → secret message ──
+  let logoClicks = 0;
+  let logoTimer = null;
+  const logo = document.querySelector('.logo-text');
+  if (logo) {
+    logo.style.cursor = 'pointer';
+    logo.addEventListener('click', () => {
+      logoClicks++;
+      clearTimeout(logoTimer);
+      logoTimer = setTimeout(() => { logoClicks = 0; }, 2000);
+      if (logoClicks >= 5) {
+        logoClicks = 0;
+        logo.classList.add('logo-secret');
+        showToast('You found a secret! Stay focused, stay awesome.');
+        setTimeout(() => logo.classList.remove('logo-secret'), 4000);
+      }
+    });
+  }
+
+  // ── Type "zen" while no input is focused → calming pulse ──
+  let zenBuffer = '';
+  document.addEventListener('keydown', (e) => {
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    zenBuffer += e.key.toLowerCase();
+    if (zenBuffer.length > 10) zenBuffer = zenBuffer.slice(-10);
+    if (zenBuffer.endsWith('zen')) {
+      zenBuffer = '';
+      triggerZenMode();
+    }
+  });
+}
+
+function triggerKonamiEgg() {
+  showToast('Konami code activated! Enjoy the spin.');
+  document.body.classList.add('easter-spin');
+  setTimeout(() => document.body.classList.remove('easter-spin'), 2000);
+}
+
+function triggerZenMode() {
+  showToast('Zen mode — breathe and focus.');
+  const bg = document.getElementById('bg-gradient');
+  const original = bg.style.animation;
+  bg.style.animation = 'gradShift 60s ease infinite';
+  setTimeout(() => { bg.style.animation = original || ''; }, 30000);
 }

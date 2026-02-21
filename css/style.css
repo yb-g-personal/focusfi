@@ -361,13 +361,12 @@ input, textarea { font-family: var(--font); }
 }
 .help-btn:hover { background: var(--accent); color: #fff; }
 
-/* tooltip bubble */
+/* tooltip bubble — positioned to the left, anchored at top to avoid clipping */
 .help-btn::after {
   content: attr(data-tip);
   position: absolute;
   right: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%);
+  top: -4px;
   width: 210px;
   padding: 9px 12px;
   background: #1a2035;
@@ -1001,7 +1000,7 @@ input, textarea { font-family: var(--font); }
   transform: translateY(10px);
   pointer-events: none;
 }
-.pomo-icon { font-size: 18px; }
+.pomo-icon { width: 20px; height: 20px; flex-shrink: 0; color: var(--error); }
 #big-clock-pomo-time {
   font-size: 22px;
   font-weight: 700;
@@ -1200,6 +1199,103 @@ input, textarea { font-family: var(--font); }
   font-variant-numeric: tabular-nums;
   font-size: 10px;
   color: var(--text-dim);
+}
+
+/* ── Ambient Sounds ───────────────────────────────────────── */
+.ambient-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.ambient-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.ambient-item:hover { background: rgba(255,255,255,0.06); border-color: var(--border-hi); }
+.ambient-item.active { border-color: var(--accent); background: var(--accent-dim); }
+.ambient-item .ambient-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex: 1;
+}
+.ambient-item.active .ambient-name { color: var(--accent); }
+.ambient-item .ambient-icon {
+  width: 16px; height: 16px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.ambient-item.active .ambient-icon { color: var(--accent); }
+.ambient-master {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ambient-master input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--border-hi);
+  outline: none;
+  cursor: pointer;
+}
+.ambient-master input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+.ambient-master input[type="range"]::-moz-range-thumb {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+/* ── Focus Quote ─────────────────────────────────────────── */
+.focus-quote {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--text);
+  font-style: italic;
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+  margin: 0;
+}
+.focus-quote-author {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  padding-left: 15px;
+}
+
+/* ── Easter egg animations ───────────────────────────────── */
+@keyframes konami-spin {
+  0% { transform: rotate(0deg) scale(1); filter: hue-rotate(0deg); }
+  50% { transform: rotate(180deg) scale(1.1); filter: hue-rotate(180deg); }
+  100% { transform: rotate(360deg) scale(1); filter: hue-rotate(360deg); }
+}
+.easter-spin {
+  animation: konami-spin 2s ease;
+}
+.logo-secret {
+  color: var(--success) !important;
+  transition: color 0.5s ease;
 }
 
 /* ── Skip Ad Overlay ─────────────────────────────────────── */

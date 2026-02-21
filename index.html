@@ -147,6 +147,20 @@
     <rect x="17" y="4" width="3" height="16"/>
   </symbol>
 
+  <symbol id="ic-headphones" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z"/>
+    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z"/>
+  </symbol>
+
+  <symbol id="ic-quote" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6 17h3l2-4V7H5v6h3l-2 4zm8 0h3l2-4V7h-6v6h3l-2 4z"/>
+  </symbol>
+
+  <symbol id="ic-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </symbol>
+
 </svg>
 
 <!-- ═══════════════════════════════════════════════
@@ -163,7 +177,7 @@
     <div class="big-clock-date" id="big-clock-date">Saturday, January 1, 2026</div>
     <!-- Pomodoro timer fades in here when running -->
     <div id="big-clock-pomo" class="big-clock-pomo hidden">
-      <span class="pomo-icon">🍅</span>
+      <svg class="pomo-icon"><use href="#ic-tomato"/></svg>
       <span id="big-clock-pomo-time">25:00</span>
       <span class="pomo-sep">·</span>
       <span id="big-clock-pomo-end">ends at --:--</span>
@@ -240,6 +254,14 @@
     <button class="tool-toggle" data-panel="breathing-panel" aria-label="Toggle breathing">
       <svg class="icon"><use href="#ic-wind"/></svg>
       <span class="tl">Breathe</span>
+    </button>
+    <button class="tool-toggle" data-panel="ambient-panel" aria-label="Toggle ambient sounds">
+      <svg class="icon"><use href="#ic-headphones"/></svg>
+      <span class="tl">Ambient</span>
+    </button>
+    <button class="tool-toggle" data-panel="quote-panel" aria-label="Toggle focus quote">
+      <svg class="icon"><use href="#ic-quote"/></svg>
+      <span class="tl">Quote</span>
     </button>
   </div>
 
@@ -416,6 +438,52 @@
         <button id="btn-countdown-start" class="btn-primary">Start</button>
         <button id="btn-countdown-reset" class="btn-secondary">Reset</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Ambient Sounds ── -->
+  <div id="ambient-panel" class="panel hidden" role="region" aria-label="Ambient Sounds">
+    <div class="panel-header">
+      <h3>Ambient Sounds</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Ambient Sounds"
+          data-tip="Layer calming ambient sounds on top of your music. Mix rain, fireplace, birds, or wind to create your ideal focus environment.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="ambient-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="ambient-grid" id="ambient-grid"></div>
+      <div class="ambient-master">
+        <label>Master volume</label>
+        <input type="range" id="ambient-volume" min="0" max="100" value="50" aria-label="Ambient volume">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Focus Quote ── -->
+  <div id="quote-panel" class="panel hidden" role="region" aria-label="Focus Quote">
+    <div class="panel-header">
+      <h3>Focus Quote</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Focus Quote"
+          data-tip="Get inspired with a random focus and productivity quote. Click the refresh button for a new one.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="quote-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <blockquote class="focus-quote" id="focus-quote-text">
+        The secret of getting ahead is getting started.
+      </blockquote>
+      <p class="focus-quote-author" id="focus-quote-author">— Mark Twain</p>
+      <button id="btn-new-quote" class="btn-secondary" style="width:100%;margin-top:10px">New Quote</button>
     </div>
   </div>
 
