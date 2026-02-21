@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   FocusFi — style.css
+   focusfi — style.css
    Font: Space Grotesk (Google Fonts)
    ═══════════════════════════════════════════════════════════ */
 
@@ -77,6 +77,75 @@ html, body {
 
 button { cursor: pointer; }
 
+/* ═══════════════════════════════════════════════════════════
+   LOADING SCREEN
+   ═══════════════════════════════════════════════════════════ */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease;
+}
+.loader.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.loader.done { display: none; }
+
+.loader-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.loader-clock {
+  width: 36px;
+  height: 36px;
+  color: var(--accent);
+}
+
+/* Clock hand animation: minute hand sweeps around, then settles at the logo position */
+.loader-hands {
+  transform-origin: 12px 12px;
+  animation: loader-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes loader-sweep {
+  0%   { transform: rotate(0deg);   }
+  60%  { transform: rotate(340deg); }
+  80%  { transform: rotate(355deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Circle draws in */
+.loader-clock circle {
+  stroke-dasharray: 63;
+  stroke-dashoffset: 63;
+  animation: loader-circle 0.8s ease forwards;
+}
+@keyframes loader-circle {
+  0%   { stroke-dashoffset: 63; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Text fades in after clock settles */
+.loader-text {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateX(-8px);
+  animation: loader-text-in 0.5s ease 1s forwards;
+}
+@keyframes loader-text-in {
+  0%   { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
 /* ── SVG Icon Helper ─────────────────────────────────────── */
 .icon {
   display: inline-block;
@@ -135,7 +204,7 @@ button { cursor: pointer; }
 }
 
 /* gif layer */
-#bg-gif img {
+#bg-gif video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -289,11 +358,14 @@ button { cursor: pointer; }
   letter-spacing: 0.5px;
   margin-right: 4px;
   font-variant-numeric: tabular-nums;
-  transition: opacity 0.5s ease, color 0.5s ease;
+  transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+  transform: translateY(0);
+  opacity: 1;
 }
 .clock.clock-scene {
   opacity: 0;
-  color: #fff;
+  transform: translateY(4px);
+  transition-delay: 0s;
 }
 
 /* background selector pill */
@@ -1084,17 +1156,37 @@ button { cursor: pointer; }
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%);
   text-align: center;
   z-index: 2;
   pointer-events: none;
   user-select: none;
   opacity: 1;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+  transition: top 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+              left 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s ease;
 }
+
+/* When switching away from clock scene, shrink+fly toward header clock */
 .big-clock.mini {
-  transform: translate(-50%, -50%) translateY(-35vh) scale(0.08);
+  /* Fly to approximately where the header clock sits (right-ish, top) */
+  top: calc(var(--header-h) / 2);
+  left: calc(100% - 160px);
+  transform: translate(-50%, -50%) scale(0.04);
   opacity: 0;
+}
+/* Hide child elements that don't belong in mini mode */
+.big-clock.mini .big-clock-seconds,
+.big-clock.mini .big-clock-date,
+.big-clock.mini .big-clock-pomo {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+/* Fade the ampm text too */
+.big-clock.mini .big-clock-ampm {
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .big-clock-time {
@@ -1117,8 +1209,9 @@ button { cursor: pointer; }
   font-size: min(3.5vw, 40px);
   font-weight: 500;
   color: var(--accent);
-  margin-left: 0.15em;
+  margin-left: 0.35em;
   vertical-align: super;
+  letter-spacing: 0.05em;
 }
 .big-clock-seconds {
   font-size: min(2.5vw, 28px);
@@ -1489,6 +1582,130 @@ button { cursor: pointer; }
 .logo-secret {
   color: var(--success) !important;
   transition: color 0.5s ease;
+}
+
+/* ── Zen Mode ────────────────────────────────────────────── */
+#header, #player-bar {
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+#header.zen-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+#player-bar.zen-hidden {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Spotify Wrapper ─────────────────────────────────────── */
+#spotify-wrapper {
+  position: fixed;
+  bottom: calc(var(--player-h) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(380px, 90vw);
+  z-index: 105;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+#spotify-wrapper.hidden { display: none; }
+#spotify-wrapper iframe {
+  display: block;
+  width: 100%;
+  height: 152px;
+}
+#yt-wrapper.source-hidden {
+  display: none !important;
+}
+
+/* ── Music Source Selector ────────────────────────────────── */
+.source-selector {
+  display: flex;
+  gap: 3px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+}
+.source-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 6px;
+  transition: all var(--transition);
+}
+.source-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.source-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Video Background Controls ───────────────────────────── */
+.video-bg-controls {
+  margin-top: 10px;
+}
+.video-bg-controls.hidden { display: none; }
+.vid-mode-selector {
+  display: flex;
+  gap: 3px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 8px;
+}
+.vid-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+.vid-mode-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.vid-mode-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+.vid-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vid-current-name {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn-sm {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 6px;
 }
 
 /* ── Skip Ad Overlay ─────────────────────────────────────── */

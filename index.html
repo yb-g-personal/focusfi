@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FocusFi</title>
+  <title>focusfi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -173,7 +173,7 @@
   <!-- Large clock overlay shown on gradient/clock mode -->
   <div id="big-clock" class="big-clock">
     <div class="big-clock-time">
-      <span id="big-clock-hours">12</span><span class="big-clock-sep">:</span><span id="big-clock-minutes">00</span><span class="big-clock-ampm" id="big-clock-ampm">AM</span>
+      <span id="big-clock-hours">12</span><span class="big-clock-sep">:</span><span id="big-clock-minutes">00</span><span class="big-clock-ampm" id="big-clock-ampm"> AM</span>
     </div>
     <div class="big-clock-seconds" id="big-clock-seconds">00</div>
     <div class="big-clock-date" id="big-clock-date">Saturday, January 1, 2026</div>
@@ -186,7 +186,7 @@
     </div>
   </div>
   <div id="bg-gif" class="bg-layer">
-    <img id="gif-img" src="" alt="" draggable="false" />
+    <video id="bg-video" muted playsinline loop></video>
   </div>
 </div>
 
@@ -201,6 +201,19 @@
   <div id="yt-player"></div>
   <!-- transparent cover that blocks accidental YouTube UI clicks -->
   <div id="yt-cover"></div>
+</div>
+
+<!-- Spotify embed wrapper -->
+<div id="spotify-wrapper" class="hidden">
+  <iframe id="spotify-iframe"
+    style="border-radius:12px"
+    src=""
+    width="100%" height="152"
+    frameBorder="0"
+    allowfullscreen=""
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    loading="lazy">
+  </iframe>
 </div>
 
 <!-- Modal dark overlay (shown with foreground video) -->
@@ -509,9 +522,36 @@
       <p class="section-label">Scene</p>
       <div class="bg-selector" role="group" aria-label="Background mode">
         <button class="bg-btn active" data-bg="gradient">Clock</button>
-        <button class="bg-btn" data-bg="gif">GIF</button>
+        <button class="bg-btn" data-bg="gif">Video</button>
         <button class="bg-btn" data-bg="stream">Stream</button>
         <button class="bg-btn" data-bg="visualizer">Visualizer</button>
+      </div>
+
+      <!-- Video background controls -->
+      <div id="video-bg-controls" class="video-bg-controls hidden">
+        <div class="vid-mode-selector" role="group" aria-label="Video playback mode">
+          <button class="vid-mode-btn active" data-vidmode="loop">
+            <svg class="icon icon-sm" style="margin-right:4px"><use href="#ic-play"/></svg>Loop
+          </button>
+          <button class="vid-mode-btn" data-vidmode="shuffle">
+            <svg class="icon icon-sm" style="margin-right:4px"><use href="#ic-eq"/></svg>Shuffle
+          </button>
+        </div>
+        <div class="vid-nav-row">
+          <button id="btn-prev-video" class="btn-secondary btn-sm" aria-label="Previous video">
+            <svg class="icon icon-sm"><use href="#ic-skip-back"/></svg>
+          </button>
+          <span id="video-name" class="vid-current-name">No videos</span>
+          <button id="btn-next-video" class="btn-secondary btn-sm" aria-label="Next video">
+            <svg class="icon icon-sm"><use href="#ic-skip-fwd"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <p class="section-label" style="margin-top:16px">Music Source</p>
+      <div class="source-selector" role="group" aria-label="Music source">
+        <button class="source-btn active" data-source="youtube">YouTube</button>
+        <button class="source-btn" data-source="spotify">Spotify</button>
       </div>
 
       <p class="section-label" style="margin-top:16px">Appearance</p>
@@ -664,6 +704,19 @@
 </script>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script type="module" src="js/app.js"></script>
+
+<!-- ═══════════════════════════════════════════════
+     LOADING SCREEN
+     ═══════════════════════════════════════════════ -->
+<div id="loader" class="loader" aria-hidden="true">
+  <div class="loader-content">
+    <svg class="loader-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline class="loader-hands" points="12 6 12 12 16 14"/>
+    </svg>
+    <span class="loader-text">focusfi</span>
+  </div>
+</div>
 
 </body>
 </html>

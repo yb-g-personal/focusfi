@@ -1,5 +1,5 @@
 /**
- * app.js — FocusFi main entry point
+ * app.js — focusfi main entry point
  *
  * Coordinates:
  *   - YouTube player (player.js)
@@ -38,13 +38,27 @@ const PRESETS = [
   { name: 'Lofi Girl — Ambient',    videoId: 'S_MOd40zlYU', desc: 'ambient lofi radio'    },
 ];
 
+// ── Spotify playlists ──────────────────────────────────────
+const SPOTIFY_PLAYLISTS = [
+  { name: 'Lofi Beats',             uri: '0vvXsWCC9xrXsKd4FyS8kM', desc: 'Chill lofi hip hop beats' },
+  { name: 'Peaceful Piano',         uri: '37i9dQZF1DX4sWSpwq3LiO', desc: 'Relax with piano' },
+  { name: 'Deep Focus',             uri: '37i9dQZF1DWZeKCadgRdKQ', desc: 'Deep focus music' },
+  { name: 'Jazz Vibes',             uri: '37i9dQZF1DX0SM0LYsmbMT', desc: 'Jazz for studying' },
+  { name: 'Ambient Chill',          uri: '37i9dQZF1DX3Ogo9pFvBkY', desc: 'Ambient soundscapes' },
+  { name: 'Brain Food',             uri: '37i9dQZF1DWXe9gFZP0gtP', desc: 'Music to concentrate' },
+];
+
 // ── Application state ──────────────────────────────────────
 let streams          = [...PRESETS];
 let streamIndex      = 0;   // index into streams[]
 let bgMode           = 'gradient';
 let playerMode       = 'audio'; // 'audio' | 'bg' | 'modal'
-let gifList          = [];
-let gifIndex         = 0;
+let videoList        = [];
+let videoIndex       = 0;
+let videoShuffle     = false;  // true = shuffle, false = loop one
+let zenActive        = false;
+let musicSource      = 'youtube'; // 'youtube' | 'spotify'
+let spotifyIndex     = 0;
 
 /** @type {YouTubePlayer} */ let player;
 /** @type {PomodoroTimer} */ let timer;
@@ -120,7 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initQuote();
   initEasterEggs();
   initVisualizer();
-  loadGifs();
+  initMusicSource();
+  initVideoControls();
+  loadVideos();
 
   // Restore last background mode
   setBackground(settings.scene, true);
@@ -130,7 +146,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const quotePanel = document.getElementById('quote-panel');
     if (quotePanel) quotePanel.classList.remove('hidden');
   }
+
+  // Dismiss loader after animations complete (min 2s)
+  dismissLoader();
 });
+
+// ── Loader ─────────────────────────────────────────────────
+function dismissLoader() {
+  const loader = document.getElementById('loader');
+  if (!loader) return;
+  // Wait for the clock + text animations to finish (≈1.8s), then fade out
+  setTimeout(() => {
+    loader.classList.add('fade-out');
+    loader.addEventListener('transitionend', () => {
+      loader.classList.add('done');
+    }, { once: true });
+  }, 2000);
+}
 
 // ── YouTube API ready ──────────────────────────────────────
 window.addEventListener('yt-ready', () => {
@@ -216,32 +248,80 @@ function setBackground(mode, silent = false) {
     if (playerMode === 'bg') setPlayerMode('audio');
   }
 
-  if (!silent && mode === 'gif' && gifList.length === 0) {
-    showToast('Add GIFs to assets/gifs/ and update manifest.json');
+  // Show/hide video background controls
+  const vidControls = document.getElementById('video-bg-controls');
+  if (vidControls) vidControls.classList.toggle('hidden', mode !== 'gif');
+
+  // Play/pause background video
+  const bgVid = document.getElementById('bg-video');
+  if (bgVid) {
+    if (mode === 'gif') {
+      bgVid.play().catch(() => {});
+    } else {
+      bgVid.pause();
+    }
+  }
+
+  if (!silent && mode === 'gif' && videoList.length === 0) {
+    showToast('Add MP4s to assets/videos/ and update manifest.json');
   }
 }
 
-// ─── GIF loading ──────────────────────────────────────────
-async function loadGifs() {
+// ─── Video background loading ─────────────────────────────
+async function loadVideos() {
   try {
-    const res  = await fetch('assets/gifs/manifest.json');
+    const res  = await fetch('assets/videos/manifest.json');
     const data = await res.json();
-    gifList = Array.isArray(data) ? data : (data.files || []);
-    if (gifList.length > 0) {
-      showGif(0);
-      setInterval(() => {
-        if (bgMode === 'gif') {
-          gifIndex = (gifIndex + 1) % gifList.length;
-          showGif(gifIndex);
-        }
-      }, 30000);
+    videoList = Array.isArray(data) ? data : (data.files || []);
+    if (videoList.length > 0) {
+      showVideo(0);
     }
   } catch { /* no manifest yet */ }
 }
 
-function showGif(i) {
-  if (gifList.length === 0) return;
-  document.getElementById('gif-img').src = `assets/gifs/${gifList[i]}`;
+function showVideo(i) {
+  if (videoList.length === 0) return;
+  const vid = document.getElementById('bg-video');
+  vid.src = `assets/videos/${videoList[i]}`;
+  vid.load();
+  vid.play().catch(() => {});
+  // Update name display
+  const nameEl = document.getElementById('video-name');
+  if (nameEl) {
+    const name = videoList[i].replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+    nameEl.textContent = name || `Video ${i + 1}`;
+  }
+}
+
+function onBgVideoEnded() {
+  if (videoShuffle && videoList.length > 1) {
+    let next;
+    do { next = Math.floor(Math.random() * videoList.length); } while (next === videoIndex);
+    videoIndex = next;
+    showVideo(videoIndex);
+  }
+  // if not shuffle, video.loop handles it
+}
+
+function setVideoMode(shuffle) {
+  videoShuffle = shuffle;
+  const vid = document.getElementById('bg-video');
+  vid.loop = !shuffle;
+  document.querySelectorAll('.vid-mode-btn').forEach(b => {
+    b.classList.toggle('active', (b.dataset.vidmode === 'shuffle') === shuffle);
+  });
+}
+
+function prevVideo() {
+  if (videoList.length === 0) return;
+  videoIndex = (videoIndex - 1 + videoList.length) % videoList.length;
+  showVideo(videoIndex);
+}
+
+function nextVideo() {
+  if (videoList.length === 0) return;
+  videoIndex = (videoIndex + 1) % videoList.length;
+  showVideo(videoIndex);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -270,11 +350,15 @@ function setPlayerMode(mode) {
 
 function initPlayerControls() {
   document.getElementById('btn-play-pause').addEventListener('click', () => {
-    if (player) player.toggle();
+    if (musicSource === 'youtube' && player) player.toggle();
   });
 
-  document.getElementById('btn-prev').addEventListener('click', prevStream);
-  document.getElementById('btn-next').addEventListener('click', nextStream);
+  document.getElementById('btn-prev').addEventListener('click', () => {
+    if (musicSource === 'spotify') { prevSpotify(); } else { prevStream(); }
+  });
+  document.getElementById('btn-next').addEventListener('click', () => {
+    if (musicSource === 'spotify') { nextSpotify(); } else { nextStream(); }
+  });
 
   document.getElementById('btn-mute').addEventListener('click', () => {
     if (!player) return;
@@ -338,6 +422,61 @@ function closeForeground() {
   setPlayerMode(bgMode === 'stream' ? 'bg' : 'audio');
 }
 
+// ═══════════════════════════════════════════════════════════
+// SPOTIFY INTEGRATION (Spotify Embed)
+// ═══════════════════════════════════════════════════════════
+
+function setMusicSource(source) {
+  musicSource = source;
+  localStorage.setItem('focusfi-music-source', source);
+
+  const ytWrapper = document.getElementById('yt-wrapper');
+  const spotifyWrapper = document.getElementById('spotify-wrapper');
+
+  document.querySelectorAll('.source-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.source === source);
+  });
+
+  if (source === 'spotify') {
+    ytWrapper.classList.add('source-hidden');
+    spotifyWrapper.classList.remove('hidden');
+    if (player) player.pause();
+    loadSpotifyPlaylist(spotifyIndex);
+    document.getElementById('stream-name').textContent = SPOTIFY_PLAYLISTS[spotifyIndex].name;
+    document.getElementById('stream-status').textContent = 'Spotify';
+    // Hide view button for Spotify (no foreground video)
+    document.getElementById('btn-view').style.display = 'none';
+    hideSkipAd();
+  } else {
+    ytWrapper.classList.remove('source-hidden');
+    spotifyWrapper.classList.add('hidden');
+    document.getElementById('btn-view').style.display = '';
+    updateStreamName();
+    setStreamStatus('Live');
+  }
+}
+
+function loadSpotifyPlaylist(index) {
+  spotifyIndex = index;
+  const pl = SPOTIFY_PLAYLISTS[index];
+  const iframe = document.getElementById('spotify-iframe');
+  iframe.src = `https://open.spotify.com/embed/playlist/${pl.uri}?utm_source=generator&theme=0`;
+  document.getElementById('stream-name').textContent = pl.name;
+  document.getElementById('stream-status').textContent = 'Spotify';
+}
+
+function prevSpotify() {
+  spotifyIndex = (spotifyIndex - 1 + SPOTIFY_PLAYLISTS.length) % SPOTIFY_PLAYLISTS.length;
+  loadSpotifyPlaylist(spotifyIndex);
+  showToast(`Switched to ${SPOTIFY_PLAYLISTS[spotifyIndex].name}`);
+}
+
+function nextSpotify() {
+  spotifyIndex = (spotifyIndex + 1) % SPOTIFY_PLAYLISTS.length;
+  loadSpotifyPlaylist(spotifyIndex);
+  showToast(`Switched to ${SPOTIFY_PLAYLISTS[spotifyIndex].name}`);
+}
+
 // ── DOM helpers ────────────────────────────────────────────
 function updateStreamName() {
   document.getElementById('stream-name').textContent = streams[streamIndex].name;
@@ -373,7 +512,7 @@ function initTimer() {
       document.getElementById('timer-time').textContent = timer.format(secs);
       // Update page title during focus sessions
       if (mode === 'focus') {
-        document.title = `${timer.format(secs)} — FocusFi`;
+        document.title = `${timer.format(secs)} — focusfi`;
       }
       // Update big clock Pomodoro overlay
       updateBigClockPomo(secs);
@@ -399,7 +538,7 @@ function initTimer() {
       document.getElementById('timer-time').textContent =
         timer.format(timer.timeLeft);
       document.getElementById('btn-timer-start').textContent = 'Start';
-      document.title = 'FocusFi';
+      document.title = 'focusfi';
       hideBigClockPomo();
     },
   });
@@ -870,25 +1009,25 @@ function checkForAd() {
   if (!player || !player.isReady) return;
   try {
     const p = player.player;
-    // Method 1: Check if video data title contains "advertisement" patterns
-    const videoData = p.getVideoData ? p.getVideoData() : null;
-    const currentUrl = p.getVideoUrl ? p.getVideoUrl() : '';
-
-    // Method 2: For live streams, duration is 0 or very large.
-    // During ads, duration is short and finite.
-    const duration = p.getDuration ? p.getDuration() : 0;
     const state = p.getPlayerState();
     const isPlaying = state === YT.PlayerState.PLAYING;
 
-    // If the video is playing with a short finite duration (ad),
-    // or the current video URL doesn't match our expected video
+    // Check multiple heuristics for ad detection
+    const duration = p.getDuration ? p.getDuration() : 0;
+    const currentUrl = p.getVideoUrl ? p.getVideoUrl() : '';
     const expectedId = streams[streamIndex].videoId;
     const urlHasOurVideo = currentUrl.includes(expectedId);
 
-    // Heuristic: playing + short duration (< MAX_AD_DURATION_SECONDS) + doesn't match our stream
-    const possibleAd = isPlaying && duration > 0 && duration < MAX_AD_DURATION_SECONDS && !urlHasOurVideo;
+    // Heuristic 1: playing + short finite duration = ad
+    const shortDurationAd = isPlaying && duration > 0 && duration < MAX_AD_DURATION_SECONDS;
 
-    if (possibleAd) {
+    // Heuristic 2: URL doesn't match our expected stream while playing
+    const wrongVideoAd = isPlaying && !urlHasOurVideo && currentUrl.length > 0;
+
+    // Heuristic 3: Check for ad overlay elements inside the iframe (best effort)
+    // The YT API doesn't expose this cleanly, so we rely on duration + URL heuristics
+
+    if (shortDurationAd || wrongVideoAd) {
       showSkipAd();
     } else {
       hideSkipAd();
@@ -943,6 +1082,22 @@ function initStreamDialog() {
 function renderPresets() {
   const container = document.getElementById('stream-presets');
   container.innerHTML = '';
+
+  if (musicSource === 'spotify') {
+    // Show Spotify playlists
+    SPOTIFY_PLAYLISTS.forEach((pl, i) => {
+      const btn       = document.createElement('button');
+      btn.className   = `preset-btn${i === spotifyIndex ? ' active' : ''}`;
+      btn.textContent = pl.name;
+      btn.addEventListener('click', () => {
+        loadSpotifyPlaylist(i);
+        document.getElementById('stream-dialog').classList.add('hidden');
+        showToast(`Switched to ${pl.name}`);
+      });
+      container.appendChild(btn);
+    });
+    return;
+  }
 
   streams.forEach((s, i) => {
     const btn       = document.createElement('button');
@@ -1203,20 +1358,20 @@ function showToast(msg, duration = 3000) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// AMBIENT SOUNDS (Web Audio API — generated noise)
+// AMBIENT SOUNDS (HTML5 Audio — loopable audio files)
+// Place audio files in assets/ambient/ (mp3, ogg, or wav).
 // ═══════════════════════════════════════════════════════════
 
 const AMBIENT_SOUNDS = [
-  { id: 'rain',      name: 'Rain',      type: 'brown' },
-  { id: 'wind',      name: 'Wind',      type: 'pink'  },
-  { id: 'white',     name: 'White Noise', type: 'white' },
-  { id: 'fireplace', name: 'Fireplace', type: 'crackle' },
-  { id: 'forest',    name: 'Forest',    type: 'filtered-pink' },
-  { id: 'ocean',     name: 'Ocean',     type: 'ocean' },
+  { id: 'rain',      name: 'Rain',        icon: '#ic-headphones', file: 'rain.mp3'      },
+  { id: 'wind',      name: 'Wind',        icon: '#ic-wind',       file: 'wind.mp3'      },
+  { id: 'white',     name: 'White Noise',  icon: '#ic-headphones', file: 'white.mp3'     },
+  { id: 'fireplace', name: 'Fireplace',   icon: '#ic-headphones', file: 'fireplace.mp3' },
+  { id: 'forest',    name: 'Forest',      icon: '#ic-headphones', file: 'forest.mp3'    },
+  { id: 'ocean',     name: 'Ocean',       icon: '#ic-headphones', file: 'ocean.mp3'     },
 ];
 
-let ambientCtx = null;
-const ambientNodes = {};
+const ambientAudios = {};   // id → { audio: HTMLAudioElement }
 
 function initAmbientSounds() {
   const grid = document.getElementById('ambient-grid');
@@ -1226,89 +1381,38 @@ function initAmbientSounds() {
     const item = document.createElement('div');
     item.className = 'ambient-item';
     item.dataset.id = s.id;
-    item.innerHTML = `<svg class="ambient-icon"><use href="#ic-headphones"/></svg><span class="ambient-name">${s.name}</span>`;
+    item.innerHTML = `<svg class="ambient-icon"><use href="${s.icon}"/></svg><span class="ambient-name">${s.name}</span>`;
     item.addEventListener('click', () => toggleAmbient(s));
     grid.appendChild(item);
   });
 
   volSlider.addEventListener('input', () => {
     const vol = parseInt(volSlider.value, 10) / 100;
-    Object.values(ambientNodes).forEach(n => {
-      if (n.gain) n.gain.gain.setValueAtTime(vol * 0.3, n.ctx.currentTime);
+    Object.values(ambientAudios).forEach(n => {
+      if (n.audio) n.audio.volume = vol;
     });
   });
 }
 
-function getAmbientCtx() {
-  if (!ambientCtx) ambientCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return ambientCtx;
-}
-
 function toggleAmbient(sound) {
   const item = document.querySelector(`.ambient-item[data-id="${sound.id}"]`);
-  if (ambientNodes[sound.id]) {
+  if (ambientAudios[sound.id]) {
     // Stop
-    ambientNodes[sound.id].source.stop();
-    delete ambientNodes[sound.id];
+    ambientAudios[sound.id].audio.pause();
+    ambientAudios[sound.id].audio.currentTime = 0;
+    delete ambientAudios[sound.id];
     item.classList.remove('active');
   } else {
     // Start
-    try {
-      const ctx = getAmbientCtx();
-      const vol = parseInt(document.getElementById('ambient-volume').value, 10) / 100;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(vol * 0.3, ctx.currentTime);
-      gain.connect(ctx.destination);
-
-      const bufferSize = 2 * ctx.sampleRate;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-
-      // Generate different noise types
-      if (sound.type === 'white') {
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-      } else if (sound.type === 'pink' || sound.type === 'filtered-pink') {
-        let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
-        for (let i = 0; i < bufferSize; i++) {
-          const w = Math.random() * 2 - 1;
-          b0 = 0.99886*b0 + w*0.0555179; b1 = 0.99332*b1 + w*0.0750759;
-          b2 = 0.96900*b2 + w*0.1538520; b3 = 0.86650*b3 + w*0.3104856;
-          b4 = 0.55000*b4 + w*0.5329522; b5 = -0.7616*b5 - w*0.0168980;
-          data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
-          b6 = w * 0.115926;
-        }
-      } else if (sound.type === 'brown' || sound.type === 'crackle') {
-        let last = 0;
-        for (let i = 0; i < bufferSize; i++) {
-          const w = Math.random() * 2 - 1;
-          data[i] = (last + (0.02 * w)) / 1.02;
-          last = data[i];
-          data[i] *= 3.5;
-          if (sound.type === 'crackle' && Math.random() < 0.001) {
-            data[i] += (Math.random() - 0.5) * 0.5;
-          }
-        }
-      } else if (sound.type === 'ocean') {
-        let last = 0;
-        for (let i = 0; i < bufferSize; i++) {
-          const t = i / ctx.sampleRate;
-          const wave = Math.sin(t * 0.15 * Math.PI * 2) * 0.5 + 0.5;
-          const w = Math.random() * 2 - 1;
-          data[i] = (last + (0.02 * w)) / 1.02;
-          last = data[i];
-          data[i] *= 3.5 * wave;
-        }
-      }
-
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(gain);
-      source.start();
-
-      ambientNodes[sound.id] = { source, gain, ctx };
-      item.classList.add('active');
-    } catch { /* AudioContext not available */ }
+    const vol = parseInt(document.getElementById('ambient-volume').value, 10) / 100;
+    const audio = new Audio(`assets/ambient/${sound.file}`);
+    audio.loop = true;
+    audio.volume = vol;
+    audio.play().catch(() => {
+      showToast(`Could not play ${sound.name}. Add ${sound.file} to assets/ambient/`);
+    });
+    ambientAudios[sound.id] = { audio };
+    item.classList.add('active');
   }
 }
 
@@ -1438,6 +1542,47 @@ function initSettings() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// MUSIC SOURCE SELECTOR
+// ═══════════════════════════════════════════════════════════
+
+function initMusicSource() {
+  // Restore saved source
+  const saved = localStorage.getItem('focusfi-music-source');
+  if (saved === 'spotify') musicSource = 'spotify';
+
+  document.querySelectorAll('.source-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.source === musicSource);
+    btn.addEventListener('click', () => setMusicSource(btn.dataset.source));
+  });
+
+  // Apply saved source on first load (after YT is ready or immediately for Spotify)
+  if (musicSource === 'spotify') {
+    // Delay until DOM is fully ready
+    setTimeout(() => setMusicSource('spotify'), 500);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// VIDEO BACKGROUND CONTROLS
+// ═══════════════════════════════════════════════════════════
+
+function initVideoControls() {
+  const bgVideo = document.getElementById('bg-video');
+  if (bgVideo) {
+    bgVideo.addEventListener('ended', onBgVideoEnded);
+  }
+
+  document.querySelectorAll('.vid-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => setVideoMode(btn.dataset.vidmode === 'shuffle'));
+  });
+
+  const prevBtn = document.getElementById('btn-prev-video');
+  const nextBtn = document.getElementById('btn-next-video');
+  if (prevBtn) prevBtn.addEventListener('click', prevVideo);
+  if (nextBtn) nextBtn.addEventListener('click', nextVideo);
+}
+
+// ═══════════════════════════════════════════════════════════
 // VISUALIZER (canvas animation)
 // ═══════════════════════════════════════════════════════════
 
@@ -1445,6 +1590,9 @@ let vizAnimId = null;
 let vizCanvas = null;
 let vizCtx = null;
 let vizBars = [];
+let vizAnalyser = null;
+let vizAudioCtx = null;
+let vizMediaSource = null;
 
 function initVisualizer() {
   vizCanvas = document.getElementById('bg-visualizer');
@@ -1454,6 +1602,7 @@ function initVisualizer() {
     speed: 0.5 + Math.random() * 2,
     phase: Math.random() * Math.PI * 2,
     amplitude: 0.3 + Math.random() * 0.7,
+    current: 0,
   }));
   window.addEventListener('resize', resizeVizCanvas);
 }
@@ -1478,22 +1627,52 @@ function startVisualizer() {
     const barCount = vizBars.length;
     const barW = width / barCount;
 
+    // Check if any ambient sounds are playing to add reactivity
+    const hasAmbient = Object.keys(ambientAudios).length > 0;
+    const ambientBoost = hasAmbient ? 1.3 : 1.0;
+
     for (let i = 0; i < barCount; i++) {
       const b = vizBars[i];
+      // Multi-wave synthesis for organic movement
       const w1 = Math.sin(time * b.speed + b.phase);
       const w2 = Math.sin(time * 0.7 + i * 0.15);
       const w3 = Math.sin(time * 0.3 + i * 0.05);
-      const h = Math.max(4,
-        ((w1 * 0.5 + 0.5) * (w2 * 0.3 + 0.7) * (w3 * 0.2 + 0.8) * b.amplitude) * height * 0.55
-      );
+      const w4 = Math.sin(time * 1.5 + i * 0.3) * 0.3;
+      const w5 = Math.sin(time * 2.1 + b.phase * 2) * 0.15;
+
+      // Pulse effect that ripples across bars
+      const pulse = Math.sin(time * 0.8 - i * 0.08) * 0.2 + 0.8;
+
+      const raw = ((w1 * 0.4 + 0.5) * (w2 * 0.3 + 0.7) * (w3 * 0.2 + 0.8) + w4 + w5) * b.amplitude * pulse * ambientBoost;
+      // Smooth interpolation for fluid movement
+      b.current += (raw - b.current) * 0.12;
+      const h = Math.max(4, b.current * height * 0.55);
+
       const x = i * barW;
       const y = height - h;
       const grad = vizCtx.createLinearGradient(x, height, x, y);
-      grad.addColorStop(0, `rgba(${rgb},0.6)`);
-      grad.addColorStop(0.5, `rgba(${rgb},0.25)`);
-      grad.addColorStop(1, `rgba(${rgb},0.06)`);
+      grad.addColorStop(0, `rgba(${rgb},0.7)`);
+      grad.addColorStop(0.4, `rgba(${rgb},0.35)`);
+      grad.addColorStop(0.8, `rgba(${rgb},0.12)`);
+      grad.addColorStop(1, `rgba(${rgb},0.03)`);
       vizCtx.fillStyle = grad;
-      vizCtx.fillRect(x + 1, y, barW - 2, h);
+
+      // Rounded top bars
+      const r = Math.min(barW / 2 - 1, 3);
+      const bx = x + 1;
+      const bw = barW - 2;
+      vizCtx.beginPath();
+      vizCtx.moveTo(bx, height);
+      vizCtx.lineTo(bx, y + r);
+      vizCtx.quadraticCurveTo(bx, y, bx + r, y);
+      vizCtx.lineTo(bx + bw - r, y);
+      vizCtx.quadraticCurveTo(bx + bw, y, bx + bw, y + r);
+      vizCtx.lineTo(bx + bw, height);
+      vizCtx.fill();
+
+      // Glow dot at top
+      vizCtx.fillStyle = `rgba(${rgb},${0.4 + b.current * 0.4})`;
+      vizCtx.fillRect(bx, y, bw, 2);
     }
     vizAnimId = requestAnimationFrame(draw);
   }
@@ -1577,9 +1756,16 @@ function triggerKonamiEgg() {
 }
 
 function triggerZenMode() {
-  showToast('Zen mode — breathe and focus.');
-  const bg = document.getElementById('bg-gradient');
-  const original = bg.style.animation;
-  bg.style.animation = 'gradShift 60s ease infinite';
-  setTimeout(() => { bg.style.animation = original || ''; }, 30000);
+  zenActive = !zenActive;
+  const header = document.getElementById('header');
+  const playerBar = document.getElementById('player-bar');
+  if (zenActive) {
+    header.classList.add('zen-hidden');
+    playerBar.classList.add('zen-hidden');
+    showToast('Zen mode ON — type "zen" again to exit');
+  } else {
+    header.classList.remove('zen-hidden');
+    playerBar.classList.remove('zen-hidden');
+    showToast('Zen mode OFF');
+  }
 }
