@@ -26,7 +26,7 @@ Switch between four backgrounds using the pill selector in the header:
 | **Gradient** | Slowly animated dark gradient (default) |
 | **Video** | Cycles through local MP4 videos from `assets/videos/` — supports shuffle or loop-one mode |
 | **Stream** | Shows the live YouTube video full-screen as the background |
-| **Visualizer** | Audio-reactive bars visualiser synced to the music |
+
 
 When the **Stream** background is active, a subtle dark overlay keeps the rest of the UI readable.
 
@@ -152,6 +152,8 @@ Then open `http://localhost:8080`.
 | Styles | CSS3 — custom properties, grid/flex, `backdrop-filter`, `@keyframes` |
 | Scripts | Vanilla ES6 modules (no bundler) |
 | Fonts | [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk) via Google Fonts |
-| Audio | YouTube IFrame API (streams) + Spotify Embed (playlists) + Web Audio API (ambient sounds, alarm, chime, visualiser) |
+| Audio | YouTube IFrame API (streams) + Spotify Embed (playlists) + Web Audio API (ambient sounds, alarm, chime) |
+| Ambient Audio | Sound effects from [Pixabay](https://pixabay.com/) |
+| Videos | Lofi background videos from [MoeWalls](https://moewalls.com/) |
 | Storage | `localStorage` for tasks, notes, volume, stream preference, background mode, theme, and more |
 

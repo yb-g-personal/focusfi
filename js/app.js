@@ -56,6 +56,7 @@ let playerMode       = 'audio'; // 'audio' | 'bg' | 'modal'
 let videoList        = [];
 let videoIndex       = 0;
 let videoShuffle     = false;  // true = shuffle, false = loop one
+let videoShuffleTimer = null;  // 1-min timer for shuffle auto-switch
 let zenActive        = false;
 let musicSource      = 'youtube'; // 'youtube' | 'spotify'
 let spotifyIndex     = 0;
@@ -132,15 +133,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initStopwatch();
   initCountdown();
   initBreathing();
-  initEqualizer();
   initSkipAd();
   initAmbientSounds();
   initQuote();
+  initClockPanel();
   initEasterEggs();
-  initVisualizer();
   initMusicSource();
   initVideoControls();
   initSpotifyUI();
+  initRunningTools();
   loadVideos();
 
   // Pre-init Spotify controller so it's ready when user switches source
@@ -317,10 +318,12 @@ function initBackground() {
 
 /**
  * Switch the background mode.
- * @param {string}  mode   'gradient' | 'gif' | 'stream' | 'visualizer'
+ * @param {string}  mode   'gradient' | 'gif' | 'stream'
  * @param {boolean} silent  Skip toast (used on init)
  */
 function setBackground(mode, silent = false) {
+  // If saved mode was visualizer, fall back to gradient
+  if (mode === 'visualizer') mode = 'gradient';
   bgMode = mode;
   settings.scene = mode;
   saveSettings();
@@ -332,7 +335,6 @@ function setBackground(mode, silent = false) {
   // Background layer visibility
   document.getElementById('bg-gradient').classList.toggle('active', mode === 'gradient');
   document.getElementById('bg-gif').classList.toggle('active', mode === 'gif');
-  document.getElementById('bg-visualizer').classList.toggle('active', mode === 'visualizer');
 
   // Big clock: centered on gradient, shrink-transition for others
   const bigClock = document.getElementById('big-clock');
@@ -341,13 +343,6 @@ function setBackground(mode, silent = false) {
   // Header clock: hidden in clock scene, visible otherwise
   const headerClock = document.getElementById('clock');
   headerClock.classList.toggle('clock-scene', mode === 'gradient');
-
-  // Visualizer
-  if (mode === 'visualizer') {
-    startVisualizer();
-  } else {
-    stopVisualizer();
-  }
 
   // stream background
   if (mode === 'stream') {
@@ -360,13 +355,18 @@ function setBackground(mode, silent = false) {
   const vidControls = document.getElementById('video-bg-controls');
   if (vidControls) vidControls.classList.toggle('hidden', mode !== 'gif');
 
-  // Play/pause background video
+  // Play/pause background video + manage shuffle timer
   const bgVid = document.getElementById('bg-video');
   if (bgVid) {
     if (mode === 'gif') {
       bgVid.play().catch(() => {});
+      if (videoShuffle && videoList.length > 1 && !videoShuffleTimer) {
+        startVideoShuffleTimer();
+      }
     } else {
       bgVid.pause();
+      clearInterval(videoShuffleTimer);
+      videoShuffleTimer = null;
     }
   }
 
@@ -396,12 +396,21 @@ function showVideo(i) {
   if (videoList.length === 0) return;
   videoIndex = i;
   const vid = document.getElementById('bg-video');
-  vid.src = `assets/videos/${videoList[i]}`;
-  vid.load();
-  // Only auto-play if the video background mode is active
-  if (bgMode === 'gif') {
-    vid.play().catch(() => {});
-  }
+  // Dissolve transition: fade out, swap, fade in
+  vid.classList.add('dissolve-out');
+  setTimeout(() => {
+    vid.src = `assets/videos/${videoList[i]}`;
+    vid.load();
+    if (bgMode === 'gif') {
+      vid.play().catch(() => {});
+    }
+    // Wait for video to start, then fade in
+    vid.addEventListener('canplay', () => {
+      vid.classList.remove('dissolve-out');
+    }, { once: true });
+    // Fallback fade-in if canplay doesn't fire quickly
+    setTimeout(() => vid.classList.remove('dissolve-out'), 300);
+  }, 400); // match CSS transition duration
   // Update name display
   const nameEl = document.getElementById('video-name');
   if (nameEl) {
@@ -427,6 +436,27 @@ function setVideoMode(shuffle) {
   document.querySelectorAll('.vid-mode-btn').forEach(b => {
     b.classList.toggle('active', (b.dataset.vidmode === 'shuffle') === shuffle);
   });
+  // Manage the 1-minute auto-switch timer
+  clearInterval(videoShuffleTimer);
+  videoShuffleTimer = null;
+  if (shuffle && bgMode === 'gif' && videoList.length > 1) {
+    startVideoShuffleTimer();
+  }
+}
+
+function startVideoShuffleTimer() {
+  clearInterval(videoShuffleTimer);
+  videoShuffleTimer = setInterval(() => {
+    if (!videoShuffle || bgMode !== 'gif' || videoList.length <= 1) {
+      clearInterval(videoShuffleTimer);
+      videoShuffleTimer = null;
+      return;
+    }
+    let next;
+    do { next = Math.floor(Math.random() * videoList.length); } while (next === videoIndex);
+    videoIndex = next;
+    showVideo(videoIndex);
+  }, 60000); // 1 minute
 }
 
 function prevVideo() {
@@ -544,6 +574,8 @@ function toggleForeground() {
     const wrapper = document.getElementById('spotify-wrapper');
     const overlay = document.getElementById('modal-overlay');
     if (spotifyForeground) {
+      // Ensure wrapper is visible first, then add modal class
+      wrapper.classList.remove('hidden');
       wrapper.classList.add('spotify-modal');
       overlay.classList.remove('hidden');
       document.getElementById('btn-view').classList.add('active');
@@ -1271,75 +1303,6 @@ function initBreathing() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// EQUALIZER (Web Audio API)
-// ═══════════════════════════════════════════════════════════
-
-const EQ_PRESETS = {
-  flat:   { bass: 0,  mid: 0,  treble: 0  },
-  bass:   { bass: 8,  mid: 2,  treble: -2 },
-  treble: { bass: -2, mid: 0,  treble: 8  },
-  vocal:  { bass: -3, mid: 6,  treble: 3  },
-  night:  { bass: 4,  mid: -2, treble: -4 },
-};
-
-function initEqualizer() {
-  const bassSlider   = document.getElementById('eq-bass');
-  const midSlider    = document.getElementById('eq-mid');
-  const trebleSlider = document.getElementById('eq-treble');
-  const bassVal      = document.getElementById('eq-bass-val');
-  const midVal       = document.getElementById('eq-mid-val');
-  const trebleVal    = document.getElementById('eq-treble-val');
-
-  /** Apply current slider values to the Web Audio EQ filters */
-  function applyEqToFilters() {
-    // Ensure the audio graph (and filters) exist
-    getSharedAudioGraph();
-    if (eqBassFilter)   eqBassFilter.gain.value   = parseFloat(bassSlider.value);
-    if (eqMidFilter)    eqMidFilter.gain.value    = parseFloat(midSlider.value);
-    if (eqTrebleFilter) eqTrebleFilter.gain.value = parseFloat(trebleSlider.value);
-  }
-
-  function updateSliderLabels() {
-    bassVal.textContent   = bassSlider.value;
-    midVal.textContent    = midSlider.value;
-    trebleVal.textContent = trebleSlider.value;
-  }
-
-  function applyPreset(name) {
-    const p = EQ_PRESETS[name];
-    if (!p) return;
-    bassSlider.value   = p.bass;
-    midSlider.value    = p.mid;
-    trebleSlider.value = p.treble;
-    updateSliderLabels();
-    applyEqToFilters();
-    document.querySelectorAll('.eq-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.eq === name);
-    });
-    localStorage.setItem('focusfi-eq', name);
-  }
-
-  // Preset buttons
-  document.querySelectorAll('.eq-btn').forEach(btn => {
-    btn.addEventListener('click', () => applyPreset(btn.dataset.eq));
-  });
-
-  // Sliders — update labels AND apply to audio filters in real-time
-  [bassSlider, midSlider, trebleSlider].forEach(slider => {
-    slider.addEventListener('input', () => {
-      updateSliderLabels();
-      applyEqToFilters();
-      // Deselect preset buttons when manually adjusting
-      document.querySelectorAll('.eq-btn').forEach(b => b.classList.remove('active'));
-    });
-  });
-
-  // Restore saved EQ
-  const saved = localStorage.getItem('focusfi-eq') || 'flat';
-  applyPreset(saved);
-}
-
-// ═══════════════════════════════════════════════════════════
 // AD DETECTION & SKIP
 // ═══════════════════════════════════════════════════════════
 
@@ -1738,16 +1701,11 @@ function showToast(msg, duration = 3000) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SHARED AUDIO GRAPH (for ambient sounds + visualizer)
+// SHARED AUDIO GRAPH (for ambient sounds)
 // ═══════════════════════════════════════════════════════════
 
 let sharedAudioCtx = null;
 let sharedAnalyser = null;
-
-// ── EQ filter nodes (inserted between gain and analyser) ──
-let eqBassFilter   = null;
-let eqMidFilter    = null;
-let eqTrebleFilter = null;
 
 function getSharedAudioGraph() {
   if (!sharedAudioCtx) {
@@ -1755,32 +1713,10 @@ function getSharedAudioGraph() {
     sharedAnalyser = sharedAudioCtx.createAnalyser();
     sharedAnalyser.fftSize = 128;
     sharedAnalyser.smoothingTimeConstant = 0.82;
-
-    // Create EQ filters: bass (lowshelf) → mid (peaking) → treble (highshelf) → analyser → destination
-    eqBassFilter = sharedAudioCtx.createBiquadFilter();
-    eqBassFilter.type = 'lowshelf';
-    eqBassFilter.frequency.value = 200;
-    eqBassFilter.gain.value = 0;
-
-    eqMidFilter = sharedAudioCtx.createBiquadFilter();
-    eqMidFilter.type = 'peaking';
-    eqMidFilter.frequency.value = 1000;
-    eqMidFilter.Q.value = 1.0;
-    eqMidFilter.gain.value = 0;
-
-    eqTrebleFilter = sharedAudioCtx.createBiquadFilter();
-    eqTrebleFilter.type = 'highshelf';
-    eqTrebleFilter.frequency.value = 4000;
-    eqTrebleFilter.gain.value = 0;
-
-    // Chain: ... → eqBass → eqMid → eqTreble → analyser → destination
-    eqBassFilter.connect(eqMidFilter);
-    eqMidFilter.connect(eqTrebleFilter);
-    eqTrebleFilter.connect(sharedAnalyser);
     sharedAnalyser.connect(sharedAudioCtx.destination);
   }
   if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
-  return { ctx: sharedAudioCtx, analyser: sharedAnalyser, eqInput: eqBassFilter };
+  return { ctx: sharedAudioCtx, analyser: sharedAnalyser };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1833,19 +1769,19 @@ function toggleAmbient(sound) {
     delete ambientAudios[sound.id];
     item.classList.remove('active');
   } else {
-    // Start — route through shared audio graph for visualizer reactivity
+    // Start — route through shared audio graph
     const vol = parseInt(document.getElementById('ambient-volume').value, 10) / 100;
     const audio = new Audio(`assets/ambient/${sound.file}`);
     audio.loop = true;
     audio.crossOrigin = 'anonymous';
 
     try {
-      const { ctx, eqInput } = getSharedAudioGraph();
+      const { ctx, analyser } = getSharedAudioGraph();
       const source = ctx.createMediaElementSource(audio);
       const gain   = ctx.createGain();
       gain.gain.value = vol;
       source.connect(gain);
-      gain.connect(eqInput); // gain → eqBass → eqMid → eqTreble → analyser → destination
+      gain.connect(analyser); // gain → analyser → destination
       audio.play().then(() => {
         item.classList.add('active');
       }).catch((err) => {
@@ -2035,10 +1971,12 @@ function initMusicSource() {
     btn.addEventListener('click', () => setMusicSource(btn.dataset.source));
   });
 
-  // Apply saved source on first load
+  // Apply saved source on first load — properly switch to spotify if saved
   if (musicSource === 'spotify') {
-    // Defer to allow Spotify SDK to finish connecting
-    setTimeout(() => setMusicSource('spotify'), 300);
+    // Defer to allow Spotify SDK to finish connecting + YT to be ready
+    setTimeout(() => {
+      setMusicSource('spotify');
+    }, 500);
   }
 }
 
@@ -2062,187 +2000,7 @@ function initVideoControls() {
   if (nextBtn) nextBtn.addEventListener('click', nextVideo);
 }
 
-// ═══════════════════════════════════════════════════════════
-// VISUALIZER (canvas animation)
-// ═══════════════════════════════════════════════════════════
 
-let vizAnimId = null;
-let vizCanvas = null;
-let vizCtx = null;
-let vizBars = [];
-let vizAnalyser = null;
-let vizAudioCtx = null;
-let vizMediaSource = null;
-let tabAudioStream = null;
-let tabAudioSource = null;
-
-function initVisualizer() {
-  vizCanvas = document.getElementById('bg-visualizer');
-  vizCtx = vizCanvas.getContext('2d');
-  const barCount = 64;
-  vizBars = Array.from({ length: barCount }, () => ({
-    speed: 0.5 + Math.random() * 2,
-    phase: Math.random() * Math.PI * 2,
-    amplitude: 0.3 + Math.random() * 0.7,
-    current: 0,
-  }));
-  window.addEventListener('resize', resizeVizCanvas);
-}
-
-function resizeVizCanvas() {
-  if (!vizCanvas) return;
-  vizCanvas.width = window.innerWidth;
-  vizCanvas.height = window.innerHeight;
-}
-
-/**
- * Capture tab audio via getDisplayMedia for visualizer reactivity.
- * This captures YouTube & Spotify audio playing in the current tab
- * without using the microphone.
- */
-function enableTabAudioCapture() {
-  if (tabAudioStream) return; // already capturing
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-    showToast('Tab audio capture not supported in this browser');
-    return;
-  }
-  navigator.mediaDevices.getDisplayMedia({
-    audio: true,
-    video: { width: 1, height: 1, frameRate: 1 }, // minimal video (required)
-    preferCurrentTab: true,       // Chrome: auto-select current tab
-    selfBrowserSurface: 'include', // Chrome: include this tab as option
-  })
-    .then(stream => {
-      tabAudioStream = stream;
-      // Stop the video track — we only need audio
-      stream.getVideoTracks().forEach(t => t.stop());
-      const audioTracks = stream.getAudioTracks();
-      if (audioTracks.length === 0) {
-        showToast('No audio track captured — visualizer uses ambient sounds');
-        return;
-      }
-      const { ctx } = getSharedAudioGraph();
-      tabAudioSource = ctx.createMediaStreamSource(new MediaStream(audioTracks));
-      // Connect to analyser only (NOT destination — avoids echo/feedback)
-      tabAudioSource.connect(sharedAnalyser);
-      showToast('Tab audio captured for visualizer');
-      // Clean up if the user stops sharing
-      audioTracks[0].addEventListener('ended', () => disableTabAudioCapture());
-    })
-    .catch(() => {
-      showToast('Audio capture cancelled — visualizer uses ambient sounds');
-    });
-}
-
-function disableTabAudioCapture() {
-  if (tabAudioSource) { try { tabAudioSource.disconnect(); } catch {} tabAudioSource = null; }
-  if (tabAudioStream) { tabAudioStream.getTracks().forEach(t => t.stop()); tabAudioStream = null; }
-}
-
-function startVisualizer() {
-  if (vizAnimId) return;
-  resizeVizCanvas();
-
-  // If no ambient sounds active, capture tab audio for YouTube/Spotify reactivity
-  if (Object.keys(ambientAudios).length === 0 && !tabAudioStream) {
-    enableTabAudioCapture();
-  }
-
-  let freqBuf = null;
-
-  function draw() {
-    const { width, height } = vizCanvas;
-    vizCtx.clearRect(0, 0, width, height);
-    const time = performance.now() / 1000;
-    const accent = getComputedStyle(document.documentElement)
-      .getPropertyValue('--accent').trim() || '#7c6af5';
-    const rgb = hexToRgb(accent);
-    const barCount = vizBars.length;
-    const barW = width / barCount;
-
-    // ── Read frequency data from shared audio graph ──
-    let hasAudioData = false;
-    if (sharedAnalyser) {
-      if (!freqBuf || freqBuf.length !== sharedAnalyser.frequencyBinCount) {
-        freqBuf = new Uint8Array(sharedAnalyser.frequencyBinCount);
-      }
-      sharedAnalyser.getByteFrequencyData(freqBuf);
-      for (let j = 0; j < freqBuf.length; j++) {
-        if (freqBuf[j] > 2) { hasAudioData = true; break; }
-      }
-    }
-
-    for (let i = 0; i < barCount; i++) {
-      const b = vizBars[i];
-      let targetH;
-
-      if (hasAudioData && freqBuf) {
-        // ── Audio-reactive mode (driven by ambient sounds) ──
-        const binIdx = Math.floor(i * freqBuf.length / barCount);
-        const val = freqBuf[binIdx] / 255;
-        targetH = val * height * 0.85;
-      } else {
-        // ── Idle ambient animation (no audio playing) ──
-        const w1 = Math.sin(time * b.speed + b.phase);
-        const w2 = Math.sin(time * 0.7 + i * 0.15);
-        const w3 = Math.sin(time * 0.3 + i * 0.05);
-        const pulse = Math.sin(time * 0.8 - i * 0.08) * 0.2 + 0.8;
-        targetH = ((w1 * 0.4 + 0.5) * (w2 * 0.3 + 0.7) * (w3 * 0.2 + 0.8))
-          * b.amplitude * pulse * height * 0.35;
-      }
-
-      // Smooth interpolation (faster response for real audio)
-      b.current += (targetH - b.current) * (hasAudioData ? 0.35 : 0.1);
-      const h = Math.max(4, b.current);
-
-      const x = i * barW;
-      const y = height - h;
-      const grad = vizCtx.createLinearGradient(x, height, x, y);
-      grad.addColorStop(0, `rgba(${rgb},0.7)`);
-      grad.addColorStop(0.4, `rgba(${rgb},0.35)`);
-      grad.addColorStop(0.8, `rgba(${rgb},0.12)`);
-      grad.addColorStop(1, `rgba(${rgb},0.03)`);
-      vizCtx.fillStyle = grad;
-
-      // Rounded top bars
-      const r = Math.min(barW / 2 - 1, 3);
-      const bx = x + 1;
-      const bw = barW - 2;
-      vizCtx.beginPath();
-      vizCtx.moveTo(bx, height);
-      vizCtx.lineTo(bx, y + r);
-      vizCtx.quadraticCurveTo(bx, y, bx + r, y);
-      vizCtx.lineTo(bx + bw - r, y);
-      vizCtx.quadraticCurveTo(bx + bw, y, bx + bw, y + r);
-      vizCtx.lineTo(bx + bw, height);
-      vizCtx.fill();
-
-      // Glow dot at top
-      vizCtx.fillStyle = `rgba(${rgb},${0.4 + (h / height) * 0.4})`;
-      vizCtx.fillRect(bx, y, bw, 2);
-    }
-    vizAnimId = requestAnimationFrame(draw);
-  }
-  draw();
-}
-
-function stopVisualizer() {
-  if (vizAnimId) {
-    cancelAnimationFrame(vizAnimId);
-    vizAnimId = null;
-  }
-  if (vizCtx && vizCanvas) {
-    vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
-  }
-  disableTabAudioCapture();
-}
-
-function hexToRgb(hex) {
-  hex = hex.replace('#', '');
-  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-  if (hex.length !== 6) return '124,106,245';
-  return `${parseInt(hex.substring(0,2),16)},${parseInt(hex.substring(2,4),16)},${parseInt(hex.substring(4,6),16)}`;
-}
 
 // ═══════════════════════════════════════════════════════════
 // EASTER EGGS
@@ -2264,7 +2022,19 @@ function initEasterEggs() {
     }
   });
 
-  // ── Logo click 5 times → secret message ──
+  // ── Logo click → spin clock hands then return to position ──
+  const logoSvg = document.querySelector('.logo-svg');
+  if (logoSvg) {
+    logoSvg.addEventListener('click', () => {
+      if (logoSvg.classList.contains('spin-hands')) return; // already animating
+      logoSvg.classList.add('spin-hands');
+      logoSvg.addEventListener('animationend', () => {
+        logoSvg.classList.remove('spin-hands');
+      }, { once: true });
+    });
+  }
+
+  // ── Logo text click 5 times → secret message ──
   let logoClicks = 0;
   let logoTimer = null;
   const logo = document.querySelector('.logo-text');
@@ -2316,4 +2086,151 @@ function triggerZenMode() {
     playerBar.classList.remove('zen-hidden');
     showToast('Zen mode OFF');
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLOCK PANEL (tool)
+// ═══════════════════════════════════════════════════════════
+
+function initClockPanel() {
+  function tick() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+
+    const use12 = settings.clockFormat === '12h' ||
+      (settings.clockFormat === 'system' &&
+        /[AP]M/i.test(new Date().toLocaleTimeString([], { hour: 'numeric' })));
+
+    let ampm = '';
+    if (use12) {
+      ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+    }
+
+    const hEl = document.getElementById('panel-clock-hours');
+    const mEl = document.getElementById('panel-clock-minutes');
+    const sEl = document.getElementById('panel-clock-seconds');
+    const aEl = document.getElementById('panel-clock-ampm');
+    const dEl = document.getElementById('panel-clock-date');
+    if (!hEl) return;
+
+    hEl.textContent = use12 ? String(hours) : String(hours).padStart(2, '0');
+    mEl.textContent = String(minutes).padStart(2, '0');
+    sEl.textContent = String(seconds).padStart(2, '0');
+    aEl.textContent = ampm ? ` ${ampm}` : '';
+    dEl.textContent = now.toLocaleDateString([], {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RUNNING TOOLS BAR (header mini-briefs for live tools)
+// ═══════════════════════════════════════════════════════════
+
+let runningToolsInterval = null;
+
+function initRunningTools() {
+  // Update running tools bar every 500ms
+  runningToolsInterval = setInterval(updateRunningTools, 500);
+  updateRunningTools();
+}
+
+function updateRunningTools() {
+  const bar = document.getElementById('running-tools-bar');
+  if (!bar) return;
+  const chips = [];
+
+  // Pomodoro timer (live instance)
+  if (timer && timer.isRunning) {
+    const panel = document.getElementById('timer-panel');
+    const isOpen = panel && !panel.classList.contains('hidden');
+    if (!isOpen) {
+      const timeStr = timer.format(timer.timeLeft);
+      const modeLabel = timer.mode === 'focus' ? 'Focus' : 'Break';
+      chips.push({
+        id: 'timer-panel',
+        icon: '#ic-tomato',
+        text: `${modeLabel} ${timeStr}`,
+      });
+    }
+  }
+
+  // Stopwatch (live instance)
+  if (swRunning) {
+    const panel = document.getElementById('stopwatch-panel');
+    const isOpen = panel && !panel.classList.contains('hidden');
+    if (!isOpen) {
+      const total = swElapsed + (Date.now() - swStart);
+      chips.push({
+        id: 'stopwatch-panel',
+        icon: '#ic-stopwatch',
+        text: formatMs(total),
+      });
+    }
+  }
+
+  // Countdown timer (live instance)
+  if (cdRunning) {
+    const panel = document.getElementById('countdown-panel');
+    const isOpen = panel && !panel.classList.contains('hidden');
+    if (!isOpen) {
+      const m = Math.floor(cdLeft / 60);
+      const s = cdLeft % 60;
+      chips.push({
+        id: 'countdown-panel',
+        icon: '#ic-hourglass',
+        text: `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`,
+      });
+    }
+  }
+
+  // Breathing exercise (live instance)
+  if (brInterval !== null) {
+    const panel = document.getElementById('breathing-panel');
+    const isOpen = panel && !panel.classList.contains('hidden');
+    if (!isOpen) {
+      const label = document.getElementById('breathing-label');
+      chips.push({
+        id: 'breathing-panel',
+        icon: '#ic-wind',
+        text: label ? label.textContent : 'Breathing',
+      });
+    }
+  }
+
+  // Build HTML
+  const existing = bar.querySelectorAll('.running-tool-chip');
+  const existingIds = new Set([...existing].map(el => el.dataset.panel));
+  const newIds = new Set(chips.map(c => c.id));
+
+  // Remove stale chips
+  existing.forEach(el => {
+    if (!newIds.has(el.dataset.panel)) el.remove();
+  });
+
+  chips.forEach(chip => {
+    let el = bar.querySelector(`.running-tool-chip[data-panel="${chip.id}"]`);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'running-tool-chip';
+      el.dataset.panel = chip.id;
+      el.innerHTML = `<svg class="icon"><use href="${chip.icon}"/></svg><span></span>`;
+      el.addEventListener('click', () => {
+        const panel = document.getElementById(chip.id);
+        if (panel) {
+          panel.classList.remove('hidden');
+          // Mark the tools menu item active
+          const menuItem = document.querySelector(`.tools-menu-item[data-panel="${chip.id}"]`);
+          if (menuItem) menuItem.classList.add('active');
+        }
+      });
+      bar.appendChild(el);
+    }
+    el.querySelector('span').textContent = chip.text;
+  });
 }

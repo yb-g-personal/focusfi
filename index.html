@@ -174,7 +174,6 @@
      ═══════════════════════════════════════════════ -->
 <div id="background">
   <div id="bg-gradient" class="bg-layer active"></div>
-  <canvas id="bg-visualizer" class="bg-layer"></canvas>
   <!-- Large clock overlay shown on gradient/clock mode -->
   <div id="big-clock" class="big-clock">
     <div class="big-clock-time">
@@ -228,12 +227,15 @@
   <div class="header-left">
     <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10"/>
-      <polyline points="12 6 12 12 16 14"/>
+      <line class="logo-hand-min" x1="12" y1="12" x2="12" y2="6"/>
+      <line class="logo-hand-hr" x1="12" y1="12" x2="16" y2="14"/>
     </svg>
     <span class="logo-text">focusfi</span>
   </div>
 
-  <div class="header-center"></div>
+  <div class="header-center">
+    <div id="running-tools-bar" class="running-tools-bar"></div>
+  </div>
 
   <div class="header-right">
     <span id="clock" class="clock" aria-live="off"></span>
@@ -270,6 +272,10 @@
         <button class="tools-menu-item" data-panel="ambient-panel">
           <svg class="icon"><use href="#ic-headphones"/></svg>
           <span>Ambient</span>
+        </button>
+        <button class="tools-menu-item" data-panel="clock-panel">
+          <svg class="icon"><use href="#ic-clock"/></svg>
+          <span>Clock</span>
         </button>
         <button class="tools-menu-item" data-panel="quote-panel">
           <svg class="icon"><use href="#ic-quote"/></svg>
@@ -482,6 +488,31 @@
     </div>
   </div>
 
+  <!-- ── Clock Tool ── -->
+  <div id="clock-panel" class="panel hidden" role="region" aria-label="Clock">
+    <div class="panel-header">
+      <h3>Clock</h3>
+      <div class="panel-actions">
+        <button class="help-btn" aria-label="About Clock"
+          data-tip="A fully-featured clock with time, date, and seconds display — same as the main clock scene but available as a side panel.">
+          <svg class="icon icon-sm"><use href="#ic-help"/></svg>
+        </button>
+        <button class="close-panel" data-panel="clock-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="panel-clock">
+        <div class="panel-clock-time">
+          <span id="panel-clock-hours">12</span><span class="panel-clock-sep">:</span><span id="panel-clock-minutes">00</span><span class="panel-clock-ampm" id="panel-clock-ampm"> AM</span>
+        </div>
+        <div class="panel-clock-seconds" id="panel-clock-seconds">00</div>
+        <div class="panel-clock-date" id="panel-clock-date">Saturday, January 1, 2026</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Focus Quote ── -->
   <div id="quote-panel" class="panel hidden" role="region" aria-label="Focus Quote">
     <div class="panel-header">
@@ -521,7 +552,6 @@
         <button class="bg-btn active" data-bg="gradient">Clock</button>
         <button class="bg-btn" data-bg="gif">Video</button>
         <button class="bg-btn" data-bg="stream">Stream</button>
-        <button class="bg-btn" data-bg="visualizer">Visualizer</button>
       </div>
 
       <!-- Video background controls -->
@@ -631,23 +661,6 @@
         <button id="btn-load-stream" class="btn-primary">Load</button>
       </div>
       <p id="stream-error" class="error-msg hidden" role="alert"></p>
-
-      <p class="section-label" style="margin-top:20px">
-        <svg class="icon icon-sm" style="vertical-align:-2px;margin-right:4px"><use href="#ic-eq"/></svg>
-        Equalizer
-      </p>
-      <div id="eq-presets" class="eq-presets">
-        <button class="eq-btn active" data-eq="flat">Flat</button>
-        <button class="eq-btn" data-eq="bass">Bass Boost</button>
-        <button class="eq-btn" data-eq="treble">Treble</button>
-        <button class="eq-btn" data-eq="vocal">Vocal</button>
-        <button class="eq-btn" data-eq="night">Night</button>
-      </div>
-      <div id="eq-sliders" class="eq-sliders">
-        <div class="eq-band"><label>Bass</label><input type="range" id="eq-bass" min="-12" max="12" value="0" step="1"><span id="eq-bass-val">0</span></div>
-        <div class="eq-band"><label>Mid</label><input type="range" id="eq-mid" min="-12" max="12" value="0" step="1"><span id="eq-mid-val">0</span></div>
-        <div class="eq-band"><label>Treble</label><input type="range" id="eq-treble" min="-12" max="12" value="0" step="1"><span id="eq-treble-val">0</span></div>
-      </div>
     </div>
   </div>
 </div>

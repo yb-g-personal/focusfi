@@ -224,15 +224,14 @@ button { cursor: pointer; }
   animation: gradShift 22s ease infinite;
 }
 
-/* visualizer canvas */
-#bg-visualizer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+/* gif layer – dissolve transition for shuffle mode */
+#bg-gif video {
+  transition: opacity 0.4s ease;
+}
+#bg-gif video.dissolve-out {
+  opacity: 0;
 }
 
-/* gif layer */
 #bg-gif video {
   width: 100%;
   height: 100%;
@@ -358,6 +357,28 @@ button { cursor: pointer; }
   width: 20px;
   height: 20px;
   color: var(--accent);
+  cursor: pointer;
+}
+/* Logo clock hand rotation */
+.logo-hand-min, .logo-hand-hr {
+  transform-origin: 12px 12px;
+  transition: transform 0.05s linear;
+}
+.logo-svg.spin-hands .logo-hand-min {
+  animation: logo-spin-min 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.logo-svg.spin-hands .logo-hand-hr {
+  animation: logo-spin-hr 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes logo-spin-min {
+  0%   { transform: rotate(0deg); }
+  50%  { transform: rotate(360deg); }
+  100% { transform: rotate(720deg); }
+}
+@keyframes logo-spin-hr {
+  0%   { transform: rotate(0deg); }
+  50%  { transform: rotate(180deg); }
+  100% { transform: rotate(360deg); }
 }
 .logo-text {
   font-size: 17px;
@@ -370,6 +391,80 @@ button { cursor: pointer; }
   flex: 1;
   display: flex;
   justify-content: center;
+  overflow: hidden;
+}
+
+/* ── Running Tools Bar (mini briefs in header) ───────────── */
+.running-tools-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.running-tools-bar::-webkit-scrollbar { display: none; }
+.running-tool-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-variant-numeric: tabular-nums;
+}
+.running-tool-chip:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+.running-tool-chip .icon {
+  width: 12px;
+  height: 12px;
+}
+/* Running tools bar adapts to scenes — stays compact in header center */
+
+/* ── Panel Clock (clock tool) ─────────────────────────────── */
+.panel-clock {
+  text-align: center;
+  padding: 20px 0 10px;
+}
+.panel-clock-time {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  color: var(--text);
+  line-height: 1;
+}
+.panel-clock-sep {
+  opacity: 0.4;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+.panel-clock-ampm {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+.panel-clock-seconds {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+.panel-clock-date {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 10px;
 }
 
 .header-right {
@@ -1443,77 +1538,6 @@ button { cursor: pointer; }
   color: var(--text-dim);
   margin-top: 10px;
   text-align: center;
-}
-
-/* ── Equalizer ───────────────────────────────────────────── */
-.eq-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 12px;
-}
-.eq-btn {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 5px;
-  transition: all var(--transition);
-}
-.eq-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-.eq-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
-
-.eq-sliders {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.eq-band {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.eq-band label {
-  width: 42px;
-  text-align: right;
-  flex-shrink: 0;
-}
-.eq-band input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  flex: 1;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--border-hi);
-  outline: none;
-  cursor: pointer;
-}
-.eq-band input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-}
-.eq-band input[type="range"]::-moz-range-thumb {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: none;
-  cursor: pointer;
-}
-.eq-band span {
-  width: 24px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  font-size: 10px;
-  color: var(--text-dim);
 }
 
 /* ── Ambient Sounds ───────────────────────────────────────── */
