@@ -60,8 +60,8 @@ let zenActive        = false;
 let musicSource      = 'youtube'; // 'youtube' | 'spotify'
 let spotifyIndex     = 0;
 
-/** @type {YouTubePlayer} */ let player;
-/** @type {PomodoroTimer} */ let timer;
+/** @type {YouTubePlayer} */  let player;
+/** @type {PomodoroTimer} */  let timer;
 /** @type {TaskList}      */ let taskList;
 /** @type {Notes}         */ let notes;
 
@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initVisualizer();
   initMusicSource();
   initVideoControls();
+  initSpotifyUI();
   loadVideos();
 
   // Restore last background mode
@@ -155,6 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function dismissLoader() {
   const loader = document.getElementById('loader');
   if (!loader) return;
+  // Play a gentle startup chime
+  playLoaderChime();
   // Wait for the clock + text animations to finish (≈1.8s), then fade out
   setTimeout(() => {
     loader.classList.add('fade-out');
@@ -164,8 +167,97 @@ function dismissLoader() {
   }, 2000);
 }
 
+/** Ethereal heavenly chime — layered pads + shimmer over the loader. */
+function playLoaderChime() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const now  = ctx.currentTime;
+
+    // Master gain
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.18, now);
+    master.connect(ctx.destination);
+
+    // Reverb via convolver (synthetic impulse)
+    const convolver  = ctx.createConvolver();
+    const reverbLen  = ctx.sampleRate * 2.5;
+    const impulse    = ctx.createBuffer(2, reverbLen, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulse.getChannelData(ch);
+      for (let i = 0; i < reverbLen; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / reverbLen, 2.2);
+      }
+    }
+    convolver.buffer = impulse;
+
+    // Dry/wet mix
+    const dryGain = ctx.createGain();
+    const wetGain = ctx.createGain();
+    dryGain.gain.value = 0.45;
+    wetGain.gain.value = 0.55;
+    dryGain.connect(master);
+    convolver.connect(wetGain);
+    wetGain.connect(master);
+
+    // Pad chord: Cmaj7 spread across octaves — ethereal voicing
+    const padNotes = [
+      { freq: 261.63, start: 0,   dur: 2.8 },  // C4
+      { freq: 329.63, start: 0.1, dur: 2.6 },  // E4
+      { freq: 392.00, start: 0.2, dur: 2.5 },  // G4
+      { freq: 493.88, start: 0.3, dur: 2.4 },  // B4
+      { freq: 523.25, start: 0.15,dur: 2.5 },  // C5
+    ];
+
+    padNotes.forEach(({ freq, start, dur }) => {
+      // Two detuned oscillators for warmth
+      [-4, 4].forEach(detune => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type            = 'sine';
+        osc.frequency.value = freq;
+        osc.detune.value    = detune;
+        // Slow swell in, long fade out
+        gain.gain.setValueAtTime(0, now + start);
+        gain.gain.linearRampToValueAtTime(0.07, now + start + 0.6);
+        gain.gain.setValueAtTime(0.07, now + start + dur * 0.5);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+        osc.connect(gain);
+        gain.connect(dryGain);
+        gain.connect(convolver);
+        osc.start(now + start);
+        osc.stop(now + start + dur + 0.1);
+      });
+    });
+
+    // Shimmer arpeggiated bells on top
+    const shimmer = [
+      { freq: 1046.50, start: 0.3, dur: 1.2 },  // C6
+      { freq: 1318.51, start: 0.6, dur: 1.0 },  // E6
+      { freq: 1567.98, start: 0.9, dur: 1.0 },  // G6
+      { freq: 1975.53, start: 1.2, dur: 1.2 },  // B6
+    ];
+
+    shimmer.forEach(({ freq, start, dur }) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type            = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + start);
+      gain.gain.linearRampToValueAtTime(0.04, now + start + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+      osc.connect(gain);
+      gain.connect(dryGain);
+      gain.connect(convolver);
+      osc.start(now + start);
+      osc.stop(now + start + dur + 0.1);
+    });
+
+  } catch { /* AudioContext blocked or unavailable */ }
+}
+
 // ── YouTube API ready ──────────────────────────────────────
-window.addEventListener('yt-ready', () => {
+function handleYTReady() {
+  if (player) return; // Already initialized (guard against double-fire)
   player = new YouTubePlayer('yt-player');
   player.init(streams[streamIndex].videoId);
 
@@ -189,13 +281,21 @@ window.addEventListener('yt-ready', () => {
 
   player.onStateChange((e) => {
     const s = e.data;
+    if (musicSource !== 'youtube') return; // Ignore YT state when Spotify is active
     updatePlayBtn(s === YT.PlayerState.PLAYING);
     if      (s === YT.PlayerState.PLAYING)   setStreamStatus('Live');
     else if (s === YT.PlayerState.BUFFERING) setStreamStatus('Loading\u2026');
     else if (s === YT.PlayerState.PAUSED)    setStreamStatus('Paused');
     else if (s === YT.PlayerState.ENDED)     setStreamStatus('Ended');
   });
-});
+}
+
+// Guard against race: if YT API loaded before module executed, fire immediately
+if (window._ytApiReady) {
+  handleYTReady();
+} else {
+  window.addEventListener('yt-ready', handleYTReady);
+}
 
 // ═══════════════════════════════════════════════════════════
 // BACKGROUND
@@ -335,6 +435,8 @@ function setPlayerMode(mode) {
   const wrapper = document.getElementById('yt-wrapper');
   wrapper.className = ''; // clear all mode classes
   wrapper.classList.add(`mode-${mode}`);
+  // Keep yt-wrapper hidden when Spotify is the active source
+  if (musicSource === 'spotify') wrapper.classList.add('source-hidden');
   playerMode = mode;
 
   const overlay = document.getElementById('modal-overlay');
@@ -423,19 +525,23 @@ function closeForeground() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SPOTIFY INTEGRATION (Spotify Embed)
+// SPOTIFY INTEGRATION (Enhanced Embed)
 // ═══════════════════════════════════════════════════════════
 
 function setMusicSource(source) {
   musicSource = source;
   localStorage.setItem('focusfi-music-source', source);
 
-  const ytWrapper = document.getElementById('yt-wrapper');
+  const ytWrapper      = document.getElementById('yt-wrapper');
   const spotifyWrapper = document.getElementById('spotify-wrapper');
+  const spotifySection = document.getElementById('spotify-section');
 
   document.querySelectorAll('.source-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.source === source);
   });
+
+  // Show/hide Spotify section in settings
+  if (spotifySection) spotifySection.classList.toggle('hidden', source !== 'spotify');
 
   if (source === 'spotify') {
     ytWrapper.classList.add('source-hidden');
@@ -452,17 +558,63 @@ function setMusicSource(source) {
     spotifyWrapper.classList.add('hidden');
     document.getElementById('btn-view').style.display = '';
     updateStreamName();
-    setStreamStatus('Live');
+    if (player) {
+      setStreamStatus('Live');
+      player.play();
+    }
   }
+}
+
+/**
+ * Build a Spotify embed URL from a playlist/album/track URI or ID.
+ * Supports full URLs like https://open.spotify.com/playlist/xxxxx
+ * or bare IDs from the SPOTIFY_PLAYLISTS array.
+ */
+function buildSpotifyEmbedUrl(uriOrUrl, type = 'playlist') {
+  // If it looks like a full Spotify URL, parse it
+  if (uriOrUrl.startsWith('http')) {
+    try {
+      const url = new URL(uriOrUrl);
+      const parts = url.pathname.split('/').filter(Boolean);
+      // e.g. /playlist/0vvXsWCC9xrXsKd4FyS8kM or /album/xxxx or /track/xxxx
+      if (parts.length >= 2) {
+        type = parts[0]; // playlist, album, track, etc.
+        uriOrUrl = parts[1].split('?')[0];
+      }
+    } catch { /* not a URL, treat as ID */ }
+  }
+  // If it's a spotify: URI
+  if (uriOrUrl.startsWith('spotify:')) {
+    const parts = uriOrUrl.split(':');
+    type = parts[1];
+    uriOrUrl = parts[2];
+  }
+  return `https://open.spotify.com/embed/${type}/${uriOrUrl}?utm_source=generator&theme=0`;
 }
 
 function loadSpotifyPlaylist(index) {
   spotifyIndex = index;
   const pl = SPOTIFY_PLAYLISTS[index];
   const iframe = document.getElementById('spotify-iframe');
-  iframe.src = `https://open.spotify.com/embed/playlist/${pl.uri}?utm_source=generator&theme=0`;
+  iframe.src = buildSpotifyEmbedUrl(pl.uri, 'playlist');
   document.getElementById('stream-name').textContent = pl.name;
   document.getElementById('stream-status').textContent = 'Spotify';
+  // Update preset highlights
+  document.querySelectorAll('.spotify-preset-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === index);
+  });
+}
+
+function loadSpotifyCustomUrl(input) {
+  const raw = input.trim();
+  if (!raw) return;
+  const iframe = document.getElementById('spotify-iframe');
+  iframe.src = buildSpotifyEmbedUrl(raw);
+  document.getElementById('stream-name').textContent = 'Custom Playlist';
+  document.getElementById('stream-status').textContent = 'Spotify';
+  // Deselect all presets
+  document.querySelectorAll('.spotify-preset-btn').forEach(b => b.classList.remove('active'));
+  showToast('Loading Spotify playlist…');
 }
 
 function prevSpotify() {
@@ -475,6 +627,37 @@ function nextSpotify() {
   spotifyIndex = (spotifyIndex + 1) % SPOTIFY_PLAYLISTS.length;
   loadSpotifyPlaylist(spotifyIndex);
   showToast(`Switched to ${SPOTIFY_PLAYLISTS[spotifyIndex].name}`);
+}
+
+// ── Spotify UI setup ──────────────────────────────────────
+
+function initSpotifyUI() {
+  // Build playlist presets grid
+  const presetsGrid = document.getElementById('spotify-presets-grid');
+  if (presetsGrid) {
+    presetsGrid.innerHTML = '';
+    SPOTIFY_PLAYLISTS.forEach((pl, i) => {
+      const btn = document.createElement('button');
+      btn.className = `spotify-preset-btn preset-btn${i === spotifyIndex ? ' active' : ''}`;
+      btn.textContent = pl.name;
+      btn.title = pl.desc;
+      btn.addEventListener('click', () => {
+        loadSpotifyPlaylist(i);
+        showToast(`Playing ${pl.name}`);
+      });
+      presetsGrid.appendChild(btn);
+    });
+  }
+
+  // Custom URL input
+  const loadBtn  = document.getElementById('btn-spotify-load');
+  const urlInput = document.getElementById('spotify-custom-url');
+  if (loadBtn && urlInput) {
+    loadBtn.addEventListener('click', () => loadSpotifyCustomUrl(urlInput.value));
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadSpotifyCustomUrl(urlInput.value);
+    });
+  }
 }
 
 // ── DOM helpers ────────────────────────────────────────────
@@ -520,13 +703,10 @@ function initTimer() {
     onEnd: (mode) => {
       if (mode === 'focus') {
         if (player) player.pause();
-        showToast('Focus session complete — take a break');
-        beep(880, 0.25, 0.6);
-        beep(660, 0.2, 0.6, 0.35);
+        startAlarm('Focus session complete — take a break!');
       } else {
         if (player && settings.autoResume) player.play();
-        showToast('Break over — back to work');
-        beep(528, 0.25, 0.5);
+        startAlarm('Break over — back to work!');
       }
       updateSessionMeta();
       document.getElementById('btn-timer-start').textContent = 'Start';
@@ -649,6 +829,93 @@ function beep(freq, vol, duration, delay = 0) {
     osc.stop(ctx.currentTime + delay + duration + 0.05);
   } catch { /* AudioContext blocked or unavailable */ }
 }
+
+// ── Persistent Alarm ──────────────────────────────────────
+let alarmCtx  = null;
+let alarmOscs = [];
+let alarmInterval = null;
+
+/**
+ * Show the alarm overlay and play a looping alarm sound.
+ * @param {string} message  Text to show in the overlay
+ */
+function startAlarm(message = "Time's up!") {
+  if (!settings.notifSounds) {
+    // Still show the visual overlay even if sounds are off
+    showAlarmOverlay(message);
+    return;
+  }
+
+  showAlarmOverlay(message);
+
+  try {
+    alarmCtx = new (window.AudioContext || window.webkitAudioContext)();
+    playAlarmPattern();
+    // Repeat the pattern every 1.6s
+    alarmInterval = setInterval(playAlarmPattern, 1600);
+  } catch { /* AudioContext unavailable */ }
+}
+
+function playAlarmPattern() {
+  if (!alarmCtx) return;
+  const ctx = alarmCtx;
+  const now = ctx.currentTime;
+
+  // Two-tone alternating alarm: high-low-high-low
+  const pattern = [
+    { freq: 880,  start: 0,    dur: 0.18 },
+    { freq: 660,  start: 0.22, dur: 0.18 },
+    { freq: 880,  start: 0.44, dur: 0.18 },
+    { freq: 660,  start: 0.66, dur: 0.18 },
+    { freq: 988,  start: 0.9,  dur: 0.25 },  // higher peak note
+    { freq: 660,  start: 1.2,  dur: 0.18 },
+  ];
+
+  pattern.forEach(({ freq, start, dur }) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type            = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, now + start);
+    gain.gain.linearRampToValueAtTime(0.22, now + start + 0.02);
+    gain.gain.setValueAtTime(0.22, now + start + dur * 0.7);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now + start);
+    osc.stop(now + start + dur + 0.05);
+    alarmOscs.push(osc);
+  });
+}
+
+function stopAlarm() {
+  // Stop audio
+  clearInterval(alarmInterval);
+  alarmInterval = null;
+  alarmOscs.forEach(osc => { try { osc.stop(); } catch {} });
+  alarmOscs = [];
+  if (alarmCtx) { try { alarmCtx.close(); } catch {} alarmCtx = null; }
+  // Hide overlay
+  hideAlarmOverlay();
+}
+
+function showAlarmOverlay(message) {
+  const overlay = document.getElementById('alarm-overlay');
+  const msgEl   = document.getElementById('alarm-message');
+  if (msgEl) msgEl.textContent = message;
+  overlay.classList.remove('hidden');
+}
+
+function hideAlarmOverlay() {
+  document.getElementById('alarm-overlay').classList.add('hidden');
+}
+
+// Wire up the stop button (runs once at init)
+(function initAlarmOverlay() {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-alarm-stop')?.addEventListener('click', stopAlarm);
+  });
+})();
 
 // ═══════════════════════════════════════════════════════════
 // TASKS
@@ -849,9 +1116,7 @@ function initCountdown() {
           clearInterval(cdInterval);
           cdRunning = false;
           startBtn.textContent = 'Start';
-          showToast('Timer finished!');
-          beep(880, 0.3, 0.5);
-          beep(660, 0.25, 0.5, 0.4);
+          startAlarm('Timer finished!');
         }
       }, 1000);
     }
@@ -1092,7 +1357,7 @@ function renderPresets() {
       btn.addEventListener('click', () => {
         loadSpotifyPlaylist(i);
         document.getElementById('stream-dialog').classList.add('hidden');
-        showToast(`Switched to ${pl.name}`);
+        showToast(`Playing ${pl.name}`);
       });
       container.appendChild(btn);
     });
@@ -1244,11 +1509,11 @@ function initKeyboard() {
         break;
       case 'ArrowLeft':
         e.preventDefault();
-        prevStream();
+        if (musicSource === 'spotify') prevSpotify(); else prevStream();
         break;
       case 'ArrowRight':
         e.preventDefault();
-        nextStream();
+        if (musicSource === 'spotify') nextSpotify(); else nextStream();
         break;
       case 'm':
       case 'M':
@@ -1555,10 +1820,10 @@ function initMusicSource() {
     btn.addEventListener('click', () => setMusicSource(btn.dataset.source));
   });
 
-  // Apply saved source on first load (after YT is ready or immediately for Spotify)
+  // Apply saved source on first load
   if (musicSource === 'spotify') {
-    // Delay until DOM is fully ready
-    setTimeout(() => setMusicSource('spotify'), 500);
+    // Defer to allow Spotify SDK to finish connecting
+    setTimeout(() => setMusicSource('spotify'), 300);
   }
 }
 
