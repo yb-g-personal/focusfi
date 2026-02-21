@@ -70,7 +70,7 @@
   </symbol>
 
   <symbol id="ic-tomato" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 3c-1.5 0-2.5.5-3 1.5C6 5 3 8 3 12.5 3 17.2 7 21 12 21s9-3.8 9-8.5c0-4.5-3-7.5-6-8C14.5 3.5 13.5 3 12 3z" fill="rgba(248,113,113,0.2)"/>
+    <path d="M12 3c-1.5 0-2.5.5-3 1.5C6 5 3 8 3 12.5 3 17.2 7 21 12 21s9-3.8 9-8.5c0-4.5-3-7.5-6-8C14.5 3.5 13.5 3 12 3z"/>
     <path d="M12 3c-1.5 0-2.5.5-3 1.5C6 5 3 8 3 12.5 3 17.2 7 21 12 21s9-3.8 9-8.5c0-4.5-3-7.5-6-8C14.5 3.5 13.5 3 12 3z"/>
     <path d="M10 2c1 1.5 1.5 2 2 2s1-.5 2-2" stroke-width="1.5"/>
   </symbol>
@@ -227,38 +227,46 @@
 
   <div class="header-right">
     <span id="clock" class="clock" aria-live="off"></span>
-    <button class="tool-toggle" data-panel="timer-panel" aria-label="Toggle timer">
-      <svg class="icon"><use href="#ic-tomato"/></svg>
-      <span class="tl">Pomodoro</span>
-    </button>
-    <button class="tool-toggle" data-panel="tasks-panel" aria-label="Toggle tasks">
-      <svg class="icon"><use href="#ic-tasks"/></svg>
-      <span class="tl">Tasks</span>
-    </button>
-    <button class="tool-toggle" data-panel="notes-panel" aria-label="Toggle notes">
-      <svg class="icon"><use href="#ic-edit"/></svg>
-      <span class="tl">Notes</span>
-    </button>
-    <button class="tool-toggle" data-panel="stopwatch-panel" aria-label="Toggle stopwatch">
-      <svg class="icon"><use href="#ic-stopwatch"/></svg>
-      <span class="tl">Stopwatch</span>
-    </button>
-    <button class="tool-toggle" data-panel="countdown-panel" aria-label="Toggle countdown timer">
-      <svg class="icon"><use href="#ic-hourglass"/></svg>
-      <span class="tl">Timer</span>
-    </button>
-    <button class="tool-toggle" data-panel="breathing-panel" aria-label="Toggle breathing">
-      <svg class="icon"><use href="#ic-wind"/></svg>
-      <span class="tl">Breathe</span>
-    </button>
-    <button class="tool-toggle" data-panel="ambient-panel" aria-label="Toggle ambient sounds">
-      <svg class="icon"><use href="#ic-headphones"/></svg>
-      <span class="tl">Ambient</span>
-    </button>
-    <button class="tool-toggle" data-panel="quote-panel" aria-label="Toggle focus quote">
-      <svg class="icon"><use href="#ic-quote"/></svg>
-      <span class="tl">Quote</span>
-    </button>
+    <div class="tools-dropdown" id="tools-dropdown">
+      <button class="tool-toggle tools-trigger" id="tools-trigger" aria-label="Toggle tools menu" aria-expanded="false">
+        <svg class="icon"><use href="#ic-star"/></svg>
+        <span class="tl">Tools</span>
+      </button>
+      <div class="tools-menu hidden" id="tools-menu">
+        <button class="tools-menu-item" data-panel="timer-panel">
+          <svg class="icon"><use href="#ic-tomato"/></svg>
+          <span>Pomodoro</span>
+        </button>
+        <button class="tools-menu-item" data-panel="tasks-panel">
+          <svg class="icon"><use href="#ic-tasks"/></svg>
+          <span>Tasks</span>
+        </button>
+        <button class="tools-menu-item" data-panel="notes-panel">
+          <svg class="icon"><use href="#ic-edit"/></svg>
+          <span>Notes</span>
+        </button>
+        <button class="tools-menu-item" data-panel="stopwatch-panel">
+          <svg class="icon"><use href="#ic-stopwatch"/></svg>
+          <span>Stopwatch</span>
+        </button>
+        <button class="tools-menu-item" data-panel="countdown-panel">
+          <svg class="icon"><use href="#ic-hourglass"/></svg>
+          <span>Timer</span>
+        </button>
+        <button class="tools-menu-item" data-panel="breathing-panel">
+          <svg class="icon"><use href="#ic-wind"/></svg>
+          <span>Breathe</span>
+        </button>
+        <button class="tools-menu-item" data-panel="ambient-panel">
+          <svg class="icon"><use href="#ic-headphones"/></svg>
+          <span>Ambient</span>
+        </button>
+        <button class="tools-menu-item" data-panel="quote-panel">
+          <svg class="icon"><use href="#ic-quote"/></svg>
+          <span>Quote</span>
+        </button>
+      </div>
+    </div>
     <button class="tool-toggle" data-panel="settings-panel" aria-label="Toggle settings">
       <svg class="icon"><use href="#ic-settings"/></svg>
       <span class="tl">Settings</span>
@@ -518,6 +526,30 @@
         <button class="clock-fmt-btn active" data-fmt="system">System</button>
         <button class="clock-fmt-btn" data-fmt="12h">12-hour</button>
         <button class="clock-fmt-btn" data-fmt="24h">24-hour</button>
+      </div>
+
+      <p class="section-label" style="margin-top:16px">Display</p>
+      <div class="settings-toggles">
+        <label class="setting-toggle-row">
+          <span>Show seconds on clock</span>
+          <input type="checkbox" id="setting-show-seconds" class="setting-checkbox">
+        </label>
+        <label class="setting-toggle-row">
+          <span>Show date on clock</span>
+          <input type="checkbox" id="setting-show-date" class="setting-checkbox" checked>
+        </label>
+        <label class="setting-toggle-row">
+          <span>Notification sounds</span>
+          <input type="checkbox" id="setting-notif-sounds" class="setting-checkbox" checked>
+        </label>
+        <label class="setting-toggle-row">
+          <span>Auto-resume after break</span>
+          <input type="checkbox" id="setting-auto-resume" class="setting-checkbox" checked>
+        </label>
+        <label class="setting-toggle-row">
+          <span>Show focus quote on start</span>
+          <input type="checkbox" id="setting-show-quote" class="setting-checkbox">
+        </label>
       </div>
     </div>
   </div>
