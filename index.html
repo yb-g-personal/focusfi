@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <script>try{var s=JSON.parse(localStorage.getItem('focusfi-settings'));if(s&&s.theme)document.documentElement.dataset.theme=s.theme}catch(e){}</script>
 </head>
 <body>
 
@@ -168,6 +169,7 @@
      ═══════════════════════════════════════════════ -->
 <div id="background">
   <div id="bg-gradient" class="bg-layer active"></div>
+  <canvas id="bg-visualizer" class="bg-layer"></canvas>
   <!-- Large clock overlay shown on gradient/clock mode -->
   <div id="big-clock" class="big-clock">
     <div class="big-clock-time">
@@ -221,13 +223,7 @@
     <span class="logo-text">focusfi</span>
   </div>
 
-  <div class="header-center">
-    <div class="bg-selector" role="group" aria-label="Background mode">
-      <button class="bg-btn active" data-bg="gradient">Clock</button>
-      <button class="bg-btn" data-bg="gif">GIF</button>
-      <button class="bg-btn" data-bg="stream">Stream</button>
-    </div>
-  </div>
+  <div class="header-center"></div>
 
   <div class="header-right">
     <span id="clock" class="clock" aria-live="off"></span>
@@ -262,6 +258,10 @@
     <button class="tool-toggle" data-panel="quote-panel" aria-label="Toggle focus quote">
       <svg class="icon"><use href="#ic-quote"/></svg>
       <span class="tl">Quote</span>
+    </button>
+    <button class="tool-toggle" data-panel="settings-panel" aria-label="Toggle settings">
+      <svg class="icon"><use href="#ic-settings"/></svg>
+      <span class="tl">Settings</span>
     </button>
   </div>
 
@@ -484,6 +484,41 @@
       </blockquote>
       <p class="focus-quote-author" id="focus-quote-author">— Mark Twain</p>
       <button id="btn-new-quote" class="btn-secondary" style="width:100%;margin-top:10px">New Quote</button>
+    </div>
+  </div>
+
+  <!-- ── Settings ── -->
+  <div id="settings-panel" class="panel hidden" role="region" aria-label="Settings">
+    <div class="panel-header">
+      <h3>Settings</h3>
+      <div class="panel-actions">
+        <button class="close-panel" data-panel="settings-panel" aria-label="Close">
+          <svg class="icon icon-sm"><use href="#ic-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <p class="section-label">Scene</p>
+      <div class="bg-selector" role="group" aria-label="Background mode">
+        <button class="bg-btn active" data-bg="gradient">Clock</button>
+        <button class="bg-btn" data-bg="gif">GIF</button>
+        <button class="bg-btn" data-bg="stream">Stream</button>
+        <button class="bg-btn" data-bg="visualizer">Visualizer</button>
+      </div>
+
+      <p class="section-label" style="margin-top:16px">Appearance</p>
+      <div class="theme-selector" role="group" aria-label="Theme">
+        <button class="theme-btn active" data-theme="dark">Dark</button>
+        <button class="theme-btn" data-theme="light">Light</button>
+        <button class="theme-btn" data-theme="evening">Evening</button>
+      </div>
+
+      <p class="section-label" style="margin-top:16px">Clock Format</p>
+      <div class="clock-fmt-selector" role="group" aria-label="Clock format">
+        <button class="clock-fmt-btn active" data-fmt="system">System</button>
+        <button class="clock-fmt-btn" data-fmt="12h">12-hour</button>
+        <button class="clock-fmt-btn" data-fmt="24h">24-hour</button>
+      </div>
     </div>
   </div>
 

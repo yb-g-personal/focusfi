@@ -36,6 +36,33 @@
   --font: 'Space Grotesk', system-ui, sans-serif;
 }
 
+/* ── Light theme ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg: #f0f2f5;
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-solid: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hi: rgba(0, 0, 0, 0.15);
+  --text: #1a1a2e;
+  --text-muted: #6b7280;
+  --text-dim: #9ca3af;
+}
+
+/* ── Evening theme ───────────────────────────────────────── */
+[data-theme="evening"] {
+  --bg: #1a1408;
+  --surface: rgba(30, 24, 12, 0.85);
+  --surface-solid: #1e180c;
+  --border: rgba(255, 200, 100, 0.08);
+  --border-hi: rgba(255, 200, 100, 0.15);
+  --text: #f5e6c8;
+  --text-muted: #b8a080;
+  --text-dim: #7a6a50;
+  --accent: #c49a6c;
+  --accent-hi: #d4aa7c;
+  --accent-dim: rgba(196, 154, 108, 0.18);
+}
+
 /* ── Reset ───────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -88,6 +115,24 @@ input, textarea { font-family: var(--font); }
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+[data-theme="light"] #bg-gradient {
+  background: linear-gradient(-45deg, #e8eaf0, #d4d8e8, #e0e8f0, #dde5d8);
+  background-size: 400% 400%;
+  animation: gradShift 22s ease infinite;
+}
+[data-theme="evening"] #bg-gradient {
+  background: linear-gradient(-45deg, #1a1408, #2e1e08, #1a1810, #251a08);
+  background-size: 400% 400%;
+  animation: gradShift 22s ease infinite;
+}
+
+/* visualizer canvas */
+#bg-visualizer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* gif layer */
@@ -245,6 +290,11 @@ input, textarea { font-family: var(--font); }
   letter-spacing: 0.5px;
   margin-right: 4px;
   font-variant-numeric: tabular-nums;
+  transition: opacity 0.5s ease, color 0.5s ease;
+}
+.clock.clock-scene {
+  opacity: 0;
+  color: #fff;
 }
 
 /* background selector pill */
@@ -257,14 +307,17 @@ input, textarea { font-family: var(--font); }
   padding: 3px;
 }
 .bg-btn {
+  flex: 1;
   background: transparent;
   border: none;
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
-  padding: 5px 14px;
+  padding: 5px 10px;
   border-radius: 6px;
   transition: all var(--transition);
+  text-align: center;
+  white-space: nowrap;
 }
 .bg-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
 .bg-btn.active { background: var(--accent); color: #fff; }
@@ -369,7 +422,7 @@ input, textarea { font-family: var(--font); }
   top: -4px;
   width: 210px;
   padding: 9px 12px;
-  background: #1a2035;
+  background: var(--surface-solid);
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -931,15 +984,18 @@ input, textarea { font-family: var(--font); }
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
   text-align: center;
   z-index: 2;
   pointer-events: none;
   user-select: none;
   opacity: 1;
-  transition: opacity 0.6s ease;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
 }
-.big-clock.hidden { opacity: 0; }
+.big-clock.mini {
+  transform: translate(-50%, -50%) translateY(-35vh) scale(0.08);
+  opacity: 0;
+}
 
 .big-clock-time {
   font-size: min(18vw, 200px);
@@ -1017,11 +1073,41 @@ input, textarea { font-family: var(--font); }
   font-weight: 500;
 }
 
-/* ── Header clock fade for Clock bg mode ─────────────────── */
-.clock.fade-out {
-  opacity: 0;
-  transition: opacity 0.4s ease;
+/* ── Settings panel selectors ─────────────────────────────── */
+.theme-selector,
+.clock-fmt-selector {
+  display: flex;
+  gap: 3px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
 }
+.theme-btn,
+.clock-fmt-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: all var(--transition);
+  white-space: nowrap;
+  text-align: center;
+}
+.theme-btn:hover,
+.clock-fmt-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.theme-btn.active,
+.clock-fmt-btn.active { background: var(--accent); color: #fff; }
+
+[data-theme="light"] .bg-selector,
+[data-theme="light"] .theme-selector,
+[data-theme="light"] .clock-fmt-selector { background: rgba(0,0,0,0.04); }
+[data-theme="light"] .theme-btn:hover,
+[data-theme="light"] .clock-fmt-btn:hover,
+[data-theme="light"] .bg-btn:hover { background: rgba(0,0,0,0.06); }
 
 /* ── Stopwatch Panel ─────────────────────────────────────── */
 #stopwatch-time {
@@ -1334,7 +1420,7 @@ input, textarea { font-family: var(--font); }
   bottom: calc(var(--player-h) + 16px);
   left: 50%;
   transform: translateX(-50%);
-  background: #1a2035;
+  background: var(--surface-solid);
   border: 1px solid var(--border-hi);
   color: var(--text);
   font-size: 13px;
@@ -1406,7 +1492,6 @@ input, textarea { font-family: var(--font); }
 /* mobile (max 640px) */
 @media (max-width: 640px) {
   #header { padding: 0 12px; gap: 8px; }
-  .bg-selector { display: none; }
   .tool-toggle .tl { display: none; }
   .tool-toggle { padding: 6px 8px; }
   .clock { display: none; }

@@ -60,6 +60,25 @@ let brInterval = null, brPhase = -1;
 // Ad detection
 let adCheckInterval = null;
 
+// ── Settings state ─────────────────────────────────────────
+let settings = { theme: 'dark', clockFormat: 'system', scene: 'gradient' };
+
+function loadSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('focusfi-settings'));
+    if (saved) settings = { ...settings, ...saved };
+  } catch { /* ignore */ }
+  // Backward compat: migrate old focusfi-bg key
+  if (!localStorage.getItem('focusfi-settings')) {
+    const oldBg = localStorage.getItem('focusfi-bg');
+    if (oldBg) settings.scene = oldBg;
+  }
+}
+
+function saveSettings() {
+  localStorage.setItem('focusfi-settings', JSON.stringify(settings));
+}
+
 // Load persisted custom stream
 (function loadCustomStream() {
   try {
@@ -79,6 +98,8 @@ let adCheckInterval = null;
 
 // ── DOMContentLoaded ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  initSettings();
   initBackground();
   initTimer();
   initTasks();
@@ -97,11 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initAmbientSounds();
   initQuote();
   initEasterEggs();
+  initVisualizer();
   loadGifs();
 
   // Restore last background mode
-  const savedBg = localStorage.getItem('focusfi-bg') || 'gradient';
-  setBackground(savedBg, true);
+  setBackground(settings.scene, true);
 });
 
 // ── YouTube API ready ──────────────────────────────────────
@@ -145,28 +166,37 @@ function initBackground() {
 
 /**
  * Switch the background mode.
- * @param {string}  mode   'gradient' | 'gif' | 'stream'
+ * @param {string}  mode   'gradient' | 'gif' | 'stream' | 'visualizer'
  * @param {boolean} silent  Skip toast (used on init)
  */
 function setBackground(mode, silent = false) {
   bgMode = mode;
-  localStorage.setItem('focusfi-bg', mode);
+  settings.scene = mode;
+  saveSettings();
 
   document.querySelectorAll('.bg-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.bg === mode);
   });
 
-  // gradient / gif visibility
+  // Background layer visibility
   document.getElementById('bg-gradient').classList.toggle('active', mode === 'gradient');
   document.getElementById('bg-gif').classList.toggle('active', mode === 'gif');
+  document.getElementById('bg-visualizer').classList.toggle('active', mode === 'visualizer');
 
-  // Big clock visibility
+  // Big clock: centered on gradient, shrink-transition for others
   const bigClock = document.getElementById('big-clock');
-  bigClock.classList.toggle('hidden', mode !== 'gradient');
+  bigClock.classList.toggle('mini', mode !== 'gradient');
 
-  // Fade out header clock when big clock is visible
+  // Header clock: hidden in clock scene, visible otherwise
   const headerClock = document.getElementById('clock');
-  headerClock.classList.toggle('fade-out', mode === 'gradient');
+  headerClock.classList.toggle('clock-scene', mode === 'gradient');
+
+  // Visualizer
+  if (mode === 'visualizer') {
+    startVisualizer();
+  } else {
+    stopVisualizer();
+  }
 
   // stream background
   if (mode === 'stream') {
@@ -424,9 +454,11 @@ function updateBigClockPomo(secs) {
   const el = document.getElementById('big-clock-pomo');
   if (el.classList.contains('hidden')) return;
   document.getElementById('big-clock-pomo-time').textContent = timer.format(secs);
-  // Calculate end time
   const endDate = new Date(Date.now() + secs * 1000);
-  const endStr = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const opts = { hour: '2-digit', minute: '2-digit' };
+  if (settings.clockFormat === '12h') opts.hour12 = true;
+  else if (settings.clockFormat === '24h') opts.hour12 = false;
+  const endStr = endDate.toLocaleTimeString([], opts);
   document.getElementById('big-clock-pomo-end').textContent = `ends at ${endStr}`;
 }
 
@@ -1016,10 +1048,10 @@ function initKeyboard() {
 function initClock() {
   const el = document.getElementById('clock');
   function tick() {
-    el.textContent = new Date().toLocaleTimeString([], {
-      hour:   '2-digit',
-      minute: '2-digit',
-    });
+    const opts = { hour: '2-digit', minute: '2-digit' };
+    if (settings.clockFormat === '12h') opts.hour12 = true;
+    else if (settings.clockFormat === '24h') opts.hour12 = false;
+    el.textContent = new Date().toLocaleTimeString([], opts);
   }
   tick();
   setInterval(tick, 1000);
@@ -1035,8 +1067,16 @@ function initBigClock() {
     let hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
+
+    const use12 = settings.clockFormat === '12h' ||
+      (settings.clockFormat === 'system' &&
+        /[AP]M/i.test(new Date().toLocaleTimeString([], { hour: 'numeric' })));
+
+    let ampm = '';
+    if (use12) {
+      ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+    }
 
     document.getElementById('big-clock-hours').textContent   = String(hours).padStart(2, '0');
     document.getElementById('big-clock-minutes').textContent = String(minutes).padStart(2, '0');
@@ -1226,6 +1266,118 @@ function showQuote() {
   const q = QUOTES[quoteIndex];
   document.getElementById('focus-quote-text').textContent = q.text;
   document.getElementById('focus-quote-author').textContent = `— ${q.author}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════
+
+function initSettings() {
+  // Apply theme
+  document.documentElement.dataset.theme = settings.theme;
+
+  // Theme buttons
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === settings.theme);
+    btn.addEventListener('click', () => {
+      settings.theme = btn.dataset.theme;
+      document.documentElement.dataset.theme = settings.theme;
+      saveSettings();
+      document.querySelectorAll('.theme-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.theme === settings.theme)
+      );
+    });
+  });
+
+  // Clock format buttons
+  document.querySelectorAll('.clock-fmt-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.fmt === settings.clockFormat);
+    btn.addEventListener('click', () => {
+      settings.clockFormat = btn.dataset.fmt;
+      saveSettings();
+      document.querySelectorAll('.clock-fmt-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.fmt === settings.clockFormat)
+      );
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISUALIZER (canvas animation)
+// ═══════════════════════════════════════════════════════════
+
+let vizAnimId = null;
+let vizCanvas = null;
+let vizCtx = null;
+let vizBars = [];
+
+function initVisualizer() {
+  vizCanvas = document.getElementById('bg-visualizer');
+  vizCtx = vizCanvas.getContext('2d');
+  const barCount = 64;
+  vizBars = Array.from({ length: barCount }, () => ({
+    speed: 0.5 + Math.random() * 2,
+    phase: Math.random() * Math.PI * 2,
+    amplitude: 0.3 + Math.random() * 0.7,
+  }));
+  window.addEventListener('resize', resizeVizCanvas);
+}
+
+function resizeVizCanvas() {
+  if (!vizCanvas) return;
+  vizCanvas.width = window.innerWidth;
+  vizCanvas.height = window.innerHeight;
+}
+
+function startVisualizer() {
+  if (vizAnimId) return;
+  resizeVizCanvas();
+
+  function draw() {
+    const { width, height } = vizCanvas;
+    vizCtx.clearRect(0, 0, width, height);
+    const time = performance.now() / 1000;
+    const accent = getComputedStyle(document.documentElement)
+      .getPropertyValue('--accent').trim() || '#7c6af5';
+    const rgb = hexToRgb(accent);
+    const barCount = vizBars.length;
+    const barW = width / barCount;
+
+    for (let i = 0; i < barCount; i++) {
+      const b = vizBars[i];
+      const w1 = Math.sin(time * b.speed + b.phase);
+      const w2 = Math.sin(time * 0.7 + i * 0.15);
+      const w3 = Math.sin(time * 0.3 + i * 0.05);
+      const h = Math.max(4,
+        ((w1 * 0.5 + 0.5) * (w2 * 0.3 + 0.7) * (w3 * 0.2 + 0.8) * b.amplitude) * height * 0.55
+      );
+      const x = i * barW;
+      const y = height - h;
+      const grad = vizCtx.createLinearGradient(x, height, x, y);
+      grad.addColorStop(0, `rgba(${rgb},0.6)`);
+      grad.addColorStop(0.5, `rgba(${rgb},0.25)`);
+      grad.addColorStop(1, `rgba(${rgb},0.06)`);
+      vizCtx.fillStyle = grad;
+      vizCtx.fillRect(x + 1, y, barW - 2, h);
+    }
+    vizAnimId = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function stopVisualizer() {
+  if (vizAnimId) {
+    cancelAnimationFrame(vizAnimId);
+    vizAnimId = null;
+  }
+  if (vizCtx && vizCanvas) {
+    vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
+  }
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  return `${parseInt(hex.substring(0,2),16)},${parseInt(hex.substring(2,4),16)},${parseInt(hex.substring(4,6),16)}`;
 }
 
 // ═══════════════════════════════════════════════════════════
