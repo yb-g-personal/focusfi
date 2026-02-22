@@ -601,7 +601,7 @@ button { cursor: pointer; }
   border-color: var(--accent);
   background: var(--accent-dim);
 }
-.tool-toggle .tl { /* label text, hidden on narrow screens */ }
+/* .tool-toggle .tl rule removed; visibility controlled within media queries */
 
 /* ── Tools Dropdown ──────────────────────────────────────── */
 .tools-dropdown {
@@ -960,6 +960,7 @@ button { cursor: pointer; }
   border-radius: 4px;
   text-align: center;
   outline: none;
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 .timer-settings input[type="number"]::-webkit-inner-spin-button { display: none; }
@@ -1604,6 +1605,7 @@ button { cursor: pointer; }
   border-radius: 4px;
   text-align: center;
   outline: none;
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 .countdown-set-row input[type="number"]::-webkit-inner-spin-button { display: none; }
